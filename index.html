@@ -1,0 +1,2351 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manajemen Jadwal dan Cuti - KEU RSBA Brebes</title>
+    
+    <!-- PWA Manifest & Theme -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#198754">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Pustaka untuk Aplikasi Cuti (jsPDF, AutoTable, PDF.js) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <!-- Pustaka untuk Aplikasi Shift (SheetJS XLSX, html2pdf.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bs-body-bg: #f4f6f9;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #212529;
+            font-size: 0.85rem;
+        }
+        
+        /* HEADER APLIKASI UTAMA DENGAN GRADASI HIJAU KE PUTIH LEMBUT */
+        .app-header {
+            background: linear-gradient(135deg, #0f5132 0%, #198754 60%, #e8f5e9 100%);
+            border-bottom: 2px solid #0f5132;
+            padding: 10px 18px;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header-title-text {
+            color: #ffffff !important;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+        .header-sub-text {
+            color: #f8f9fa !important;
+            font-size: 0.72rem;
+            opacity: 0.9;
+        }
+        
+        .main-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background: #ffffff;
+        }
+
+        /* NAVIGATION TABS UTAMA */
+        .nav-app-main {
+            background: #ffffff;
+            padding: 6px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .nav-app-main .nav-link {
+            font-weight: 700;
+            color: #495057;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-app-main .nav-link.active {
+            background-color: #198754;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(25, 135, 84, 0.25);
+        }
+
+        /* SUB-NAV PUSH PILLS */
+        .nav-pills-custom .nav-link {
+            color: #495057;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            padding: 6px 14px;
+            white-space: nowrap;
+        }
+        .nav-pills-custom .nav-link.active {
+            background-color: #6c757d;
+            color: #ffffff;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* STYLING TABEL JADWAL SHIFT */
+        .table-schedule {
+            font-size: 0.72rem;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .table-schedule th, .table-schedule td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 3px 1px !important;
+            border: 1px solid #6c757d;
+            white-space: nowrap;
+        }
+        .table-schedule thead th {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #000;
+        }
+        .weekend-header {
+            background-color: #ffe6e6 !important;
+            color: #d9534f;
+        }
+        .weekend-cell {
+            background-color: #fff0f0;
+        }
+
+        /* SHIFT BADGES & SELECT */
+        .shift-select {
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 2px 0;
+            border-radius: 4px;
+        }
+        .shift-P { background-color: #cff4fc !important; color: #055160 !important; font-weight: bold; }
+        .shift-S { background-color: #fff3cd !important; color: #664d03 !important; font-weight: bold; }
+        .shift-T { background-color: #e2e3e5 !important; color: #141619 !important; font-weight: bold; }
+        .shift-L { background-color: #f8d7da !important; color: #842029 !important; font-weight: bold; }
+        .shift-C { background-color: #e0cffc !important; color: #3d0a91 !important; font-weight: bold; }
+        .shift-Spoli { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
+
+        .badge-OC { 
+            background-color: #fd7e14 !important; 
+            color: #ffffff !important; 
+            font-size: 0.55rem !important; 
+            padding: 1px 3px !important; 
+            border-radius: 2px; 
+            font-weight: bold; 
+            display: inline-block;
+            line-height: 1;
+        }
+        .sub-row-oc {
+            background-color: #fafafa;
+            font-size: 0.7rem;
+            color: #6c757d;
+        }
+
+        .preview-kop {
+            max-height: 40px;
+            object-fit: contain;
+            border: 1px dashed #ced4da;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        #pdfPreviewCanvasContainer {
+            width: 100%;
+            max-height: 75vh;
+            overflow-y: auto;
+            background-color: #525659;
+            padding: 15px;
+            text-align: center;
+        }
+        #pdfPreviewCanvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            background: #fff;
+            margin: 0 auto;
+        }
+
+        .preview-page-container {
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* KHUSUS STYLING HASIL CETAK / DOWNLOAD PDF LANDSCAPE JADWAL SHIFT */
+        .pdf-export-container {
+            width: 1080px !important;
+            padding: 12px !important;
+            background: #ffffff !important;
+            box-sizing: border-box;
+            color: #000000 !important;
+        }
+        .pdf-export-container table {
+            font-size: 0.62rem !important;
+            width: 100% !important;
+            table-layout: fixed;
+            border-collapse: collapse !important;
+        }
+        .pdf-export-container td, 
+        .pdf-export-container th {
+            padding: 2px 0px !important;
+            border: 0.5px solid #333333 !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #000000 !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+        .pdf-export-container th {
+            font-weight: bold;
+            background-color: #f0f0f0 !important;
+        }
+        .pdf-export-container tr#headerDaysRow th {
+            font-size: 0.5rem !important;
+            letter-spacing: -0.2px;
+        }
+        .pdf-export-container .badge {
+            font-size: 0.58rem !important;
+            padding: 1px 2px !important;
+            border: 0.5px solid rgba(0,0,0,0.2) !important;
+        }
+        .pdf-export-container .badge-OC {
+            font-size: 0.48rem !important;
+            padding: 1px 2px !important;
+        }
+
+        @media (max-width: 767.98px) {
+            .container-fluid-mobile {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .nav-pills-custom {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 4px;
+            }
+            .nav-pills-custom::-webkit-scrollbar {
+                display: none;
+            }
+            .mobile-card-row {
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                padding: 12px;
+                margin-bottom: 12px;
+                position: relative;
+            }
+            .table-desktop { display: none; }
+            .mobile-cards-container { display: block; }
+        }
+
+        @media (min-width: 768px) {
+            .mobile-cards-container { display: none; }
+            .table-desktop { display: table; }
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff; font-size: 7pt; }
+            .container-fluid { padding: 0 !important; }
+            .main-card { box-shadow: none; border: none; }
+            .table-schedule { font-size: 6.5pt; width: 100% !important; }
+            .shift-select { border: none !important; appearance: none; -webkit-appearance: none; }
+            @page { size: landscape; margin: 0.3cm; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER UTAMA DENGAN WARNA HIJAU GRADASI & HILANGKAN LOGO -->
+<header class="app-header mb-3 no-print">
+    <div class="container-fluid px-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h5 class="header-title-text mb-0">MANAJEMEN JADWAL DAN CUTI - KEU RSBA BREBES</h5>
+            <small class="header-sub-text">Modul Terpadu Pengajuan Cuti & Penjadwalan Shift Karyawan</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- FITUR BACKUP & RESTORE DATA JSON -->
+            <button class="btn btn-light btn-sm fw-semibold text-success shadow-sm" onclick="exportDataJson()" title="Simpan Backup Data JSON">
+                <i class="fa-solid fa-download me-1"></i> Backup JSON
+            </button>
+            <button class="btn btn-outline-light btn-sm fw-semibold shadow-sm" onclick="triggerRestoreJson()" title="Pulihkan Data dari JSON">
+                <i class="fa-solid fa-upload me-1"></i> Restore JSON
+            </button>
+            <input type="file" id="restoreJsonInput" accept=".json" style="display: none;" onchange="importDataJson(event)">
+        </div>
+    </div>
+</header>
+
+<div class="container-fluid container-fluid-mobile mb-5">
+    
+    <!-- TABS NAVIGASI UTAMA DUA APLIKASI -->
+    <div class="mb-3 no-print">
+        <ul class="nav nav-app-main nav-pills gap-2" id="appMainTab" role="tablist">
+            <li class="nav-item flex-fill">
+                <button class="nav-link w-100 active text-center" id="app-tab-cuti-btn" onclick="switchAppTab('app-cuti-pane', 'app-tab-cuti-btn')">
+                    <i class="fa-solid fa-file-signature me-2"></i> Pengajuan Persetujuan Cuti
+                </button>
+            </li>
+            <li class="nav-item flex-fill">
+                <button class="nav-link w-100 text-center" id="app-tab-shift-btn" onclick="switchAppTab('app-shift-pane', 'app-tab-shift-btn')">
+                    <i class="fa-solid fa-calendar-days me-2"></i> Atur Jadwal Shift Bulanan
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- FITUR 1: APLIKASI PENGAJUAN PERSETUJUAN CUTI                       -->
+    <!-- =================================================================== -->
+    <div class="app-pane active" id="app-cuti-pane">
+        
+        <!-- SUB-NAV TAB CUTI -->
+        <div class="mb-3 no-print">
+            <ul class="nav nav-pills nav-pills-custom gap-2" id="mainTabCuti" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="btn-tab-form" onclick="switchCutiSubTab('form-pane', 'btn-tab-form')">
+                        <i class="fa-solid fa-pen-to-square me-1"></i> Form Cuti
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="btn-tab-history" onclick="switchCutiSubTab('history-pane', 'btn-tab-history')">
+                        <i class="fa-solid fa-folder-open me-1"></i> Riwayat Surat
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="btn-tab-master" onclick="switchCutiSubTab('master-pane', 'btn-tab-master')">
+                        <i class="fa-solid fa-sliders me-1"></i> Master & Kop
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="main-card p-3 p-md-4">
+            
+            <!-- SUB-TAB 1: FORM PENGAJUAN CUTI -->
+            <div class="tab-pane active" id="form-pane">
+                <h6 class="fw-bold text-dark mb-3 border-bottom pb-2"><i class="fa-solid fa-circle-info text-success me-1"></i> Informasi Surat Cuti</h6>
+                <div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <label class="form-label fw-semibold small">Tanggal Surat</label>
+                            <input type="date" class="form-control form-control-sm" id="suratTanggal" onchange="generateNoSuratOtomatis()">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label fw-semibold small">Kode Unit</label>
+                            <input type="text" class="form-control form-control-sm" id="suratKodeUnit" value="KEU/RSBA" onchange="generateNoSuratOtomatis()">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label fw-semibold small mb-1">Nomor Surat</label>
+                                <button type="button" class="btn btn-link p-0 border-0 text-danger fw-bold" style="font-size: 0.7rem; text-decoration: none;" onclick="resetNomorSurat()">[Reset No]</button>
+                            </div>
+                            <input type="text" class="form-control form-control-sm bg-light" id="suratNomor" readonly>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label fw-semibold small">Ruangan / Unit</label>
+                            <input type="text" class="form-control form-control-sm" id="suratRuangan" value="ADMINISTRASI">
+                        </div>
+                        <div class="col-12 col-md-3 mt-md-2">
+                            <label class="form-label fw-semibold small">Bulan & Tahun Cuti</label>
+                            <input type="text" class="form-control form-control-sm" id="suratBulan" value="MARET 2026" placeholder="MARET 2026">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3 mt-4 border-bottom pb-2">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-users text-success me-1"></i> Daftar Pemohon Cuti</h6>
+                        <button type="button" class="btn btn-success btn-sm rounded-pill" onclick="addFormRow()">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Pemohon
+                        </button>
+                    </div>
+
+                    <!-- TAMPILAN DESKTOP: TABLE -->
+                    <div class="table-responsive table-desktop mb-3">
+                        <table class="table table-bordered align-middle small mb-0">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th style="width: 22%;">Nama Karyawan</th>
+                                    <th style="width: 14%;">Tgl Mulai</th>
+                                    <th style="width: 14%;">Tgl Selesai</th>
+                                    <th style="width: 6%;">Hari</th>
+                                    <th style="width: 12%;">Cuti Ke</th>
+                                    <th style="width: 6%;">Sisa</th>
+                                    <th style="width: 12%;">Jenis Cuti</th>
+                                    <th>Alasan Cuti</th>
+                                    <th style="width: 40px;" class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyCutiDesktop"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- TAMPILAN MOBILE: CARDS RESPONSIF -->
+                    <div class="mobile-cards-container" id="mobileCardsContainer"></div>
+
+                    <!-- TOMBOL AKSI: PRATINJAU & DOWNLOAD -->
+                    <div class="row g-2 mt-4">
+                        <div class="col-12 col-md-6">
+                            <button type="button" class="btn btn-outline-success btn-lg fw-bold w-100" onclick="pratinjauPDF()">
+                                <i class="fa-solid fa-eye me-1"></i> Pratinjau (Preview PDF)
+                            </button>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <button type="button" class="btn btn-success btn-lg fw-bold w-100" id="btnCetak" onclick="prosesDanCetakPDF()">
+                                <i class="fa-solid fa-file-pdf me-1"></i> Cetak & Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-TAB 2: RIWAYAT PENGAJUAN -->
+            <div class="tab-pane" id="history-pane">
+                <h6 class="fw-bold text-dark mb-3 border-bottom pb-2"><i class="fa-solid fa-box-archive text-success me-1"></i> Arsip Surat Cuti</h6>
+                <div id="historyContainer"></div>
+            </div>
+
+            <!-- SUB-TAB 3: MASTER DATA & KOP -->
+            <div class="tab-pane" id="master-pane">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-success mb-2">1. Pengaturan Kop Surat PDF/Gambar</h6>
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small fw-semibold">Unggah File Kop PDF</label>
+                                        <input type="file" class="form-control form-control-sm mb-1" id="inputKopPdf" accept="application/pdf">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small fw-semibold">Unggah Gambar Kop (PNG/JPG)</label>
+                                        <input type="file" class="form-control form-control-sm mb-1" id="inputKopImg" accept="image/png, image/jpeg, image/jpg">
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="small fw-semibold">Status Kop:</span>
+                                    <span id="kopStatusText" class="badge bg-secondary">Tanpa Kop</span>
+                                    <button type="button" class="btn btn-outline-danger btn-sm p-1 py-0 d-none" id="btnResetKop" onclick="resetKop()" style="font-size: 0.75rem;">Hapus Kop</button>
+                                    <img id="previewKopImg" class="preview-kop d-none ms-auto" alt="Preview Kop">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card border h-100">
+                            <div class="card-header bg-white fw-bold small">2. Pejabat & Tanda Tangan</div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <label class="form-label small">Nama HRD / Atasan</label>
+                                    <input type="text" class="form-control form-control-sm" id="mHrdNama" value="Sasono Wahyu N">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Jabatan Menyetujui</label>
+                                    <input type="text" class="form-control form-control-sm" id="mJabatanMenyetujui" value="Direktur RS. Bhakti Asih Brebes">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Nama Menyetujui</label>
+                                    <input type="text" class="form-control form-control-sm" id="mNamaMenyetujui" value="dr. Gita Ika Irsatika, M.M">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">NRP Menyetujui</label>
+                                    <input type="text" class="form-control form-control-sm" id="mNrpMenyetujui" value="19911210 2025 021">
+                                </div>
+                                <button type="button" class="btn btn-success btn-sm w-100 mt-2" onclick="saveMasterTtd()">Simpan TTD</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card border h-100">
+                            <div class="card-header bg-white fw-bold small d-flex justify-content-between align-items-center">
+                                <span>3. Penomoran Surat</span>
+                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="resetNomorSurat()">Reset No. Surat</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <label class="form-label small">Nomor Urut Download Saat Ini</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" class="form-control" id="mCounterSurat" value="1">
+                                        <button class="btn btn-outline-success" type="button" onclick="simpanCounterSurat()">Set Nomor</button>
+                                    </div>
+                                    <div class="form-text" style="font-size: 0.7rem;">Ubah angka urutan cetak surat secara manual jika diperlukan.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card border h-100">
+                            <div class="card-header bg-white fw-bold small d-flex justify-content-between align-items-center">
+                                <span>4. Master Karyawan Cuti</span>
+                                <button type="button" class="btn btn-sm btn-outline-success p-0 px-1" style="font-size:0.75rem" onclick="tambahKaryawanViaPrompt()">+ Input Modal</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-1 mb-2">
+                                    <div class="col-6">
+                                        <input type="text" class="form-control form-control-sm" id="inputNamaKaryawan" placeholder="Nama" autocomplete="off">
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" class="form-control form-control-sm" id="inputHakCuti" placeholder="Sisa" value="12">
+                                    </div>
+                                    <div class="col-3">
+                                        <button type="button" class="btn btn-success btn-sm w-100 fw-bold" onclick="eksekusiTambahKaryawanDirect()">Tambah</button>
+                                    </div>
+                                </div>
+                                <div style="max-height: 180px; overflow-y: auto;">
+                                    <table class="table table-sm table-bordered small mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Nama</th>
+                                                <th style="width: 50px;">Hak</th>
+                                                <th style="width: 30px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyMasterKaryawan"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <div class="card border-danger bg-danger-subtle">
+                            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <h6 class="fw-bold text-danger mb-0">Reset Seluruh Data Aplikasi Cuti</h6>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Menghapus seluruh riwayat, master data karyawan cuti, dan mengembalikan aplikasi ke kondisi awal yang bersih.</small>
+                                </div>
+                                <button type="button" class="btn btn-danger btn-sm fw-bold px-3" onclick="resetSeluruhDataAplikasi()">Reset Seluruh Data Cuti</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- FITUR 2: APLIKASI ATUR JADWAL SHIFT BULANAN                         -->
+    <!-- =================================================================== -->
+    <div class="app-pane d-none" id="app-shift-pane">
+        
+        <!-- SUB-NAV TAB SHIFT -->
+        <div class="mb-3 no-print">
+            <ul class="nav nav-pills nav-pills-custom gap-2" id="scheduleTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="tab-jadwal-btn" onclick="switchShiftSubTab('tab-jadwal', 'tab-jadwal-btn')">
+                        <i class="fa-solid fa-table me-1"></i> Jadwal Shift Bulanan
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-master-shift-btn" onclick="switchShiftSubTab('tab-master-shift', 'tab-master-shift-btn')">
+                        <i class="fa-solid fa-users me-1"></i> Kelola Karyawan & Unit
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-notes-btn" onclick="switchShiftSubTab('tab-notes', 'tab-notes-btn')">
+                        <i class="fa-solid fa-note-sticky me-1"></i> Hari Libur & Catatan
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- TAB SHIFT 1: JADWAL SHIFT BULANAN -->
+        <div id="tab-jadwal" class="shift-sub-pane">
+            
+            <div class="main-card p-3 mb-3 no-print">
+                <div class="row g-2 align-items-center">
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">Bulan</label>
+                        <select class="form-select form-select-sm" id="selectBulan" onchange="onPeriodChange()">
+                            <option value="1">Januari</option>
+                            <option value="2">Februari</option>
+                            <option value="3">Maret</option>
+                            <option value="4">April</option>
+                            <option value="5">Mei</option>
+                            <option value="6">Juni</option>
+                            <option value="7">Juli</option>
+                            <option value="8">Agustus</option>
+                            <option value="9">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11" selected>November</option>
+                            <option value="12">Desember</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">Tahun</label>
+                        <input type="number" class="form-control form-control-sm" id="selectTahun" value="2026" onchange="onPeriodChange()">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold small mb-1">Judul Dokumen Jadwal</label>
+                        <input type="text" class="form-control form-control-sm" id="inputJudulJadwal" value="JADWAL KASIR NOVEMBER 2026" oninput="saveScheduleData()">
+                    </div>
+                    <div class="col-12 col-md-4 text-md-end mt-md-4">
+                        <button class="btn btn-outline-success btn-sm me-2" onclick="fetchNationalHolidaysAuto(true)">
+                            <i class="fa-solid fa-sync me-1"></i> Sync Libur Nasional
+                        </button>
+                        <button class="btn btn-warning btn-sm fw-semibold text-dark me-1" onclick="generateAutoSchedule()">
+                            <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Auto
+                        </button>
+                        <button class="btn btn-info btn-sm fw-semibold text-white me-1" onclick="openPreviewModal()">
+                            <i class="fa-solid fa-eye me-1"></i> Preview
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm fw-semibold me-1" onclick="downloadDirectPDF()">
+                            <i class="fa-solid fa-file-pdf me-1"></i> PDF
+                        </button>
+                        <button class="btn btn-success btn-sm fw-semibold" onclick="exportToExcelXLSX()">
+                            <i class="fa-solid fa-file-excel me-1"></i> Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AREA CETAK HEADER SURAT -->
+            <div class="text-center mb-3" id="printAreaHeader">
+                <h5 class="fw-bold text-uppercase mb-1" id="printJudulJadwal">JADWAL KASIR NOVEMBER 2026</h5>
+                <small class="text-muted d-block fw-semibold">RS. BHAKTI ASIH BREBES</small>
+            </div>
+
+            <!-- MATRIKS TABEL JADWAL -->
+            <div class="main-card p-2 mb-4" id="printAreaMatrix">
+                <div class="table-responsive">
+                    <table class="table-schedule" id="scheduleMatrixTable">
+                        <thead>
+                            <tr id="headerDaysRow"></tr>
+                            <tr id="headerDatesRow"></tr>
+                        </thead>
+                        <tbody id="scheduleTbody"></tbody>
+                        <tfoot id="scheduleTfoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- INFORMASI CATATAN & HARI LIBUR NASIONAL -->
+            <div class="row g-3" id="printAreaFooter">
+                <div class="col-12 col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white fw-bold small border-bottom text-success d-flex justify-content-between align-items-center">
+                            <span><i class="fa-solid fa-umbrella-beach me-1"></i> Hari Libur Nasional Kalender</span>
+                            <span id="holidayLoadingBadge" class="badge bg-secondary d-none" style="font-size: 0.65rem;">Memuat...</span>
+                        </div>
+                        <div class="card-body p-2">
+                            <ul class="list-group list-group-flush small" id="displayHolidaysList"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white fw-bold small border-bottom text-success">
+                            <i class="fa-solid fa-clipboard-list me-1"></i> Catatan Khusus
+                        </div>
+                        <div class="card-body p-2">
+                            <div id="displayNotesContent" class="small text-muted p-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB SHIFT 2: KELOLA KARYAWAN & UNIT -->
+        <div id="tab-master-shift" class="shift-sub-pane d-none">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-success mb-3">Tambah Karyawan Shift Baru</h6>
+                        <div class="mb-2">
+                            <label class="form-label small mb-1">Nama Karyawan</label>
+                            <input type="text" class="form-control form-control-sm" id="masterNamaShift" placeholder="Contoh: DUL MUID">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small mb-1">Unit / Jabatan</label>
+                            <select class="form-select form-select-sm" id="masterUnitShift">
+                                <option value="Kasir RI">Kasir RI</option>
+                                <option value="Kasir Poli">Kasir Poli</option>
+                                <option value="POLIKLINIK">POLIKLINIK</option>
+                                <option value="LOGISTIK">LOGISTIK</option>
+                                <option value="KEU">KEU</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-success btn-sm w-100 mt-2 fw-bold" onclick="tambahKaryawanMasterShift()">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Karyawan Shift
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-md-8">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-success mb-3">Daftar Karyawan Shift Terdaftar</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Nama Karyawan</th>
+                                        <th>Unit / Jabatan</th>
+                                        <th class="text-end">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="masterKaryawanShiftTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB SHIFT 3: HARI LIBUR & CATATAN -->
+        <div id="tab-notes" class="shift-sub-pane d-none">
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-success mb-3">Kelola Hari Libur Manual / Tambahan</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <input type="number" class="form-control form-control-sm" id="inputTglLibur" placeholder="Tgl (1-31)">
+                            </div>
+                            <div class="col-6">
+                                <input type="text" class="form-control form-control-sm" id="inputKetLibur" placeholder="Keterangan Libur">
+                            </div>
+                            <div class="col-2">
+                                <button class="btn btn-success btn-sm w-100 fw-bold" onclick="tambahHariLibur()">+</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 20%;">Tanggal</th>
+                                        <th>Keterangan</th>
+                                        <th style="width: 15%;" class="text-end">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyHariLiburMaster"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-success mb-3">Kelola Catatan Khusus</h6>
+                        <textarea class="form-control form-control-sm mb-3" id="inputCatatanKhusus" rows="6" placeholder="Ketik catatan khusus jadwal di sini..."></textarea>
+                        <button class="btn btn-success btn-sm fw-bold px-4" onclick="simpanCatatanKhusus()">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Catatan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- MODAL PRATINJAU CUTI -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-bold">Pratinjau Dokumen Cuti (Simulasi Pengurangan Sisa Cuti)</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="pdfPreviewCanvasContainer">
+                    <canvas id="pdfPreviewCanvas"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-success btn-sm fw-bold" onclick="downloadFromPreview()">Download & Sahkan Cuti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PREVIEW PDF SHIFT -->
+<div class="modal fade no-print" id="previewPdfModal" tabindex="-1" aria-labelledby="previewPdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h6 class="modal-title fw-bold" id="previewPdfModalLabel">
+                    <i class="fa-solid fa-file-pdf me-2"></i> Pratinjau Dokumen Jadwal (PDF Preview)
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <div class="alert alert-info py-2 small d-flex align-items-center mb-3">
+                    <i class="fa-solid fa-circle-info me-2 fs-5"></i>
+                    <div>Periksa seluruh isi matriks jadwal dan rekapitulasi jumlah shift sebelum mengunduh dokumen.</div>
+                </div>
+                <div class="preview-page-container rounded" id="pdfPreviewContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal / Edit</button>
+                <button type="button" class="btn btn-success btn-sm fw-bold" onclick="downloadFromShiftPreview()">
+                    <i class="fa-solid fa-download me-1"></i> Unduh PDF Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // =========================================================================
+    // REGISTRASI SERVICE WORKER UNTUK PWA
+    // =========================================================================
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('./sw.js').then(function(registration) {
+                console.log('ServiceWorker registered with scope: ', registration.scope);
+            }, function(err) {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+    }
+
+    // =========================================================================
+    // FITUR BACKUP & RESTORE DATA JSON
+    // =========================================================================
+    function exportDataJson() {
+        const dataCuti = localStorage.getItem(CUTI_STORAGE_KEY);
+        const dataShift = localStorage.getItem(SHIFT_STORAGE_KEY);
+
+        const backupObj = {
+            app_title: "MANAJEMEN JADWAL DAN CUTI - KEU RSBA BREBES",
+            export_date: new Date().toISOString(),
+            cuti_data: dataCuti ? JSON.parse(dataCuti) : null,
+            shift_data: dataShift ? JSON.parse(dataShift) : null
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
+        const downloadAnchor = document.createElement('a');
+        const filename = `BACKUP_JADWAL_CUTI_RSBA_${new Date().toISOString().substring(0,10)}.json`;
+
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", filename);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function triggerRestoreJson() {
+        document.getElementById('restoreJsonInput').click();
+    }
+
+    function importDataJson(event) {
+        const fileReader = new FileReader();
+        fileReader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (importedData.cuti_data || importedData.shift_data) {
+                    if (confirm("Apakah Anda yakin ingin memulihkan data dari file JSON ini? Data lama akan digantikan.")) {
+                        if (importedData.cuti_data) {
+                            localStorage.setItem(CUTI_STORAGE_KEY, JSON.stringify(importedData.cuti_data));
+                        }
+                        if (importedData.shift_data) {
+                            localStorage.setItem(SHIFT_STORAGE_KEY, JSON.stringify(importedData.shift_data));
+                        }
+                        alert("Data berhasil dipulihkan! Halaman akan diperbarui.");
+                        location.reload();
+                    }
+                } else {
+                    alert("Format file JSON tidak valid atau bukan dari aplikasi ini.");
+                }
+            } catch (err) {
+                alert("Gagal membaca file JSON: " + err.message);
+            }
+        };
+        if (event.target.files.length > 0) {
+            fileReader.readAsText(event.target.files[0]);
+        }
+    }
+
+    // =========================================================================
+    // NAVIGASI UTAMA DUA APLIKASI
+    // =========================================================================
+    function switchAppTab(paneId, btnId) {
+        document.querySelectorAll('.app-pane').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('#appMainTab .nav-link').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(paneId).classList.remove('d-none');
+        document.getElementById(btnId).classList.add('active');
+    }
+
+    function switchCutiSubTab(paneId, btnId) {
+        document.querySelectorAll('#app-cuti-pane .tab-pane').forEach(pane => pane.classList.remove('active'));
+        document.querySelectorAll('#mainTabCuti .nav-link').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(paneId).classList.add('active');
+        document.getElementById(btnId).classList.add('active');
+    }
+
+    function switchShiftSubTab(paneId, btnId) {
+        document.querySelectorAll('.shift-sub-pane').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('#scheduleTab .nav-link').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(paneId).classList.remove('d-none');
+        document.getElementById(btnId).classList.add('active');
+    }
+
+    // =========================================================================
+    // CODE APLIKASI PENGAJUAN CUTI (STORAGE KEY TERISOLASI)
+    // =========================================================================
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    const CUTI_STORAGE_KEY = "app_cuti_rsba_v23_ultrafix";
+
+    const defaultMasterDataCuti = {
+        counterSurat: 1,
+        historySurat: [],
+        jenisCuti: ["TAHUNAN", "MELAHIRKAN", "HAJI", "UMROH", "HAJATAN"],
+        karyawan: [],
+        ttd: {
+            hrdNama: "Sasono Wahyu N",
+            jabatanMenyetujui: "Direktur RS. Bhakti Asih Brebes",
+            namaMenyetujui: "dr. Gita Ika Irsatika, M.M",
+            nrpMenyetujui: "19911210 2025 021"
+        },
+        renderedKopImageBase64: null
+    };
+
+    let masterDataCuti = JSON.parse(JSON.stringify(defaultMasterDataCuti));
+    let formDataRows = [];
+
+    function loadMasterDataCuti() {
+        const saved = localStorage.getItem(CUTI_STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                masterDataCuti.jenisCuti = parsed.jenisCuti || defaultMasterDataCuti.jenisCuti;
+                masterDataCuti.karyawan = Array.isArray(parsed.karyawan) ? parsed.karyawan : [];
+                masterDataCuti.ttd = parsed.ttd || defaultMasterDataCuti.ttd;
+                masterDataCuti.counterSurat = parsed.counterSurat || 1;
+                masterDataCuti.historySurat = parsed.historySurat || [];
+                masterDataCuti.renderedKopImageBase64 = parsed.renderedKopImageBase64 || null;
+            } catch(e) {
+                masterDataCuti = JSON.parse(JSON.stringify(defaultMasterDataCuti));
+            }
+        } else {
+            saveMasterDataCuti();
+        }
+    }
+
+    function saveMasterDataCuti() {
+        try {
+            localStorage.setItem(CUTI_STORAGE_KEY, JSON.stringify(masterDataCuti));
+        } catch (e) {
+            alert("Gagal menyimpan ke penyimpanan internal browser: " + e.message);
+        }
+    }
+
+    function resetSeluruhDataAplikasi() {
+        if (confirm("PERINGATAN: Seluruh riwayat pengajuan, master karyawan cuti, dan pengaturan surat akan DIHAPUS TOTAL. Lanjutkan reset?")) {
+            localStorage.removeItem(CUTI_STORAGE_KEY);
+            masterDataCuti = JSON.parse(JSON.stringify(defaultMasterDataCuti));
+            saveMasterDataCuti();
+            formDataRows = [];
+            renderMasterUICuti();
+            renderHistoryUICuti();
+            updateKopStatusUI();
+            generateNoSuratOtomatis();
+            addFormRow();
+            alert("Seluruh data cuti berhasil dibersihkan dan di-reset ke kondisi awal!");
+        }
+    }
+
+    function generateNoSuratOtomatis() {
+        const tglStr = document.getElementById("suratTanggal").value;
+        const kodeUnit = document.getElementById("suratKodeUnit").value || "KEU/RSBA";
+        const dateObj = tglStr ? new Date(tglStr) : new Date();
+        const bulanRomawi = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][dateObj.getMonth()];
+        const tahun = dateObj.getFullYear();
+        const noFormatted = String(masterDataCuti.counterSurat).padStart(3, '0');
+        document.getElementById("suratNomor").value = `${noFormatted}/${kodeUnit}/${bulanRomawi}/${tahun}`;
+        document.getElementById("mCounterSurat").value = masterDataCuti.counterSurat;
+    }
+
+    function resetNomorSurat() {
+        if (confirm("Apakah Anda yakin ingin mereset nomor urut surat kembali ke 001?")) {
+            masterDataCuti.counterSurat = 1;
+            saveMasterDataCuti();
+            generateNoSuratOtomatis();
+            alert("Nomor urut surat berhasil di-reset ke 001!");
+        }
+    }
+
+    function simpanCounterSurat() {
+        const val = parseInt(document.getElementById("mCounterSurat").value) || 1;
+        masterDataCuti.counterSurat = val;
+        saveMasterDataCuti();
+        generateNoSuratOtomatis();
+        alert("Nomor urut surat berhasil diperbarui!");
+    }
+
+    function renderMasterUICuti() {
+        document.getElementById("mHrdNama").value = masterDataCuti.ttd.hrdNama;
+        document.getElementById("mJabatanMenyetujui").value = masterDataCuti.ttd.jabatanMenyetujui;
+        document.getElementById("mNamaMenyetujui").value = masterDataCuti.ttd.namaMenyetujui;
+        document.getElementById("mNrpMenyetujui").value = masterDataCuti.ttd.nrpMenyetujui;
+
+        const tbodyK = document.getElementById("tbodyMasterKaryawan");
+        tbodyK.innerHTML = "";
+        if (!masterDataCuti.karyawan || masterDataCuti.karyawan.length === 0) {
+            tbodyK.innerHTML = `<tr><td colspan="3" class="text-center text-muted">Master karyawan kosong.</td></tr>`;
+        } else {
+            masterDataCuti.karyawan.forEach((k, idx) => {
+                tbodyK.innerHTML += `<tr>
+                    <td>${k.nama}</td>
+                    <td>${k.hakCuti} Hr</td>
+                    <td><button type="button" class="btn btn-sm btn-link text-danger p-0 fw-bold" onclick="deleteKaryawanCuti(${idx})">✕</button></td>
+                </tr>`;
+            });
+        }
+    }
+
+    function renderHistoryUICuti() {
+        const container = document.getElementById("historyContainer");
+        container.innerHTML = "";
+        if (masterDataCuti.historySurat.length === 0) {
+            container.innerHTML = `<div class="text-center text-muted py-4 small">Belum ada riwayat pengajuan.</div>`;
+            return;
+        }
+        masterDataCuti.historySurat.forEach((h, idx) => {
+            container.innerHTML += `
+            <div class="card border-0 bg-light mb-2">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="fw-bold text-success d-block">${h.noSurat}</span>
+                            <small class="text-muted d-block" style="font-size:0.75rem;">${h.tglCetak} | Unit: ${h.ruangan}</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-success btn-sm rounded-pill" onclick="cetakUlangHistory(${idx})">Cetak</button>
+                            <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="hapusHistoryCuti(${idx})">Hapus</button>
+                        </div>
+                    </div>
+                    <div class="small">
+                        <strong>Pemohon:</strong> ${h.daftarNama.join(", ")}
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    function hapusHistoryCuti(idx) {
+        if(confirm("Apakah Anda yakin ingin menghapus arsip riwayat ini?")) {
+            masterDataCuti.historySurat.splice(idx, 1);
+            saveMasterDataCuti();
+            renderHistoryUICuti();
+        }
+    }
+
+    function updateKopStatusUI() {
+        const badge = document.getElementById("kopStatusText");
+        const img = document.getElementById("previewKopImg");
+        const btnReset = document.getElementById("btnResetKop");
+
+        if (masterDataCuti.renderedKopImageBase64) {
+            badge.className = "badge bg-success";
+            badge.innerText = "Kop Terpasang";
+            img.src = masterDataCuti.renderedKopImageBase64;
+            img.classList.remove("d-none");
+            btnReset.classList.remove("d-none");
+        } else {
+            badge.className = "badge bg-secondary";
+            badge.innerText = "Tanpa Kop";
+            img.classList.add("d-none");
+            btnReset.classList.add("d-none");
+        }
+    }
+
+    function resetKop() {
+        masterDataCuti.renderedKopImageBase64 = null;
+        document.getElementById("inputKopImg").value = "";
+        document.getElementById("inputKopPdf").value = "";
+        saveMasterDataCuti();
+        updateKopStatusUI();
+    }
+
+    document.getElementById("inputKopPdf").addEventListener("change", async function(e) {
+        const file = e.target.files[0];
+        if (file && file.type === "application/pdf") {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            masterDataCuti.renderedKopImageBase64 = canvas.toDataURL("image/png");
+            saveMasterDataCuti();
+            updateKopStatusUI();
+        }
+    });
+
+    document.getElementById("inputKopImg").addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                masterDataCuti.renderedKopImageBase64 = evt.target.result;
+                saveMasterDataCuti();
+                updateKopStatusUI();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function saveMasterTtd() {
+        masterDataCuti.ttd.hrdNama = document.getElementById("mHrdNama").value;
+        masterDataCuti.ttd.jabatanMenyetujui = document.getElementById("mJabatanMenyetujui").value;
+        masterDataCuti.ttd.namaMenyetujui = document.getElementById("mNamaMenyetujui").value;
+        masterDataCuti.ttd.nrpMenyetujui = document.getElementById("mNrpMenyetujui").value;
+        saveMasterDataCuti();
+        alert("Pengaturan TTD disimpan.");
+    }
+
+    function eksekusiTambahKaryawanDirect() {
+        var inputNama = document.getElementById("inputNamaKaryawan");
+        var inputHak = document.getElementById("inputHakCuti");
+        if (!inputNama || !inputHak) {
+            alert("Error: Elemen input tidak ditemukan!");
+            return;
+        }
+        var namaStr = inputNama.value.replace(/^\s+|\s+$/g, '').toUpperCase();
+        var hakNum = parseInt(inputHak.value, 10);
+        if (isNaN(hakNum)) hakNum = 12;
+        if (namaStr === "") {
+            alert("Silakan ketik nama karyawan terlebih dahulu!");
+            return;
+        }
+        for (var i = 0; i < masterDataCuti.karyawan.length; i++) {
+            if (masterDataCuti.karyawan[i].nama === namaStr) {
+                alert("Nama '" + namaStr + "' sudah ada di dalam daftar!");
+                return;
+            }
+        }
+        masterDataCuti.karyawan.push({ nama: namaStr, hakCuti: hakNum, historiCutiTaken: 0 });
+        saveMasterDataCuti();
+        inputNama.value = "";
+        inputHak.value = "12";
+        renderMasterUICuti();
+        for (var j = 0; j < formDataRows.length; j++) {
+            updateRowLogic(formDataRows[j]);
+        }
+        renderFormRowsUI();
+        alert("Sukses menambah " + namaStr + " dengan " + hakNum + " hari cuti!");
+    }
+
+    function tambahKaryawanViaPrompt() {
+        var nama = prompt("Masukkan Nama Karyawan Baru:");
+        if (!nama || nama.trim() === "") return;
+        var hak = prompt("Masukkan Jumlah Hak Cuti (Hari):", "12");
+        var hakNum = parseInt(hak, 10);
+        if (isNaN(hakNum)) hakNum = 12;
+        var namaFormatted = nama.trim().toUpperCase();
+        masterDataCuti.karyawan.push({ nama: namaFormatted, hakCuti: hakNum, historiCutiTaken: 0 });
+        saveMasterDataCuti();
+        renderMasterUICuti();
+        for (var j = 0; j < formDataRows.length; j++) {
+            updateRowLogic(formDataRows[j]);
+        }
+        renderFormRowsUI();
+        alert("Karyawan " + namaFormatted + " berhasil ditambahkan!");
+    }
+
+    function deleteKaryawanCuti(idx) {
+        if(confirm("Apakah Anda yakin ingin menghapus karyawan ini dari Master Data Cuti?")) {
+            masterDataCuti.karyawan.splice(idx, 1);
+            saveMasterDataCuti();
+            renderMasterUICuti();
+            for (var j = 0; j < formDataRows.length; j++) {
+                updateRowLogic(formDataRows[j]);
+            }
+            renderFormRowsUI();
+        }
+    }
+
+    function addFormRow(nama="", tglMulai="", tglSelesai="", jenis="TAHUNAN", alasan="") {
+        const rowId = 'row_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+        const rowObj = {
+            id: rowId,
+            nama: nama,
+            tglMulai: tglMulai || new Date().toISOString().substring(0, 10),
+            tglSelesai: tglSelesai || new Date().toISOString().substring(0, 10),
+            durasi: 1,
+            cutiKe: "KE 1",
+            sisaCuti: 0,
+            jenisCuti: jenis,
+            alasan: alasan
+        };
+        formDataRows.push(rowObj);
+        updateRowLogic(rowObj);
+        renderFormRowsUI();
+    }
+
+    function removeFormRow(rowId) {
+        formDataRows = formDataRows.filter(r => r.id !== rowId);
+        renderFormRowsUI();
+    }
+
+    function updateRowLogic(row) {
+        if (row.tglMulai && row.tglSelesai) {
+            const d1 = new Date(row.tglMulai);
+            const d2 = new Date(row.tglSelesai);
+            const diffDays = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+            row.durasi = diffDays > 0 ? diffDays : 1;
+        } else {
+            row.durasi = 1;
+        }
+
+        const targetNama = (row.nama || "").trim().toUpperCase();
+        const found = masterDataCuti.karyawan.find(k => (k.nama || "").trim().toUpperCase() === targetNama);
+        if (found) {
+            row.sisaCuti = Math.max(0, found.hakCuti - row.durasi);
+            const startCuti = (found.historiCutiTaken || 0) + 1;
+            if (row.durasi > 1) {
+                let listCuti = [];
+                for(let i = 0; i < row.durasi; i++) {
+                    listCuti.push(startCuti + i);
+                }
+                row.cutiKe = `KE ${listCuti.join(', ')}`;
+            } else {
+                row.cutiKe = `KE ${startCuti}`;
+            }
+        } else {
+            row.sisaCuti = 0;
+            row.cutiKe = "KE 1";
+        }
+    }
+
+    function renderFormRowsUI() {
+        const tbodyDesktop = document.getElementById("tbodyCutiDesktop");
+        const containerMobile = document.getElementById("mobileCardsContainer");
+        tbodyDesktop.innerHTML = "";
+        containerMobile.innerHTML = "";
+
+        formDataRows.forEach((row, index) => {
+            let karyawanOpts = masterDataCuti.karyawan.map(k => `<option value="${k.nama}" ${k.nama === row.nama ? 'selected':''}>${k.nama}</option>`).join("");
+            let jenisOpts = masterDataCuti.jenisCuti.map(j => `<option value="${j}" ${j === row.jenisCuti ? 'selected':''}>${j}</option>`).join("");
+
+            tbodyDesktop.innerHTML += `
+            <tr id="desk_${row.id}">
+                <td>
+                    <select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'nama', this.value)">
+                        <option value="">-- Pilih Karyawan --</option>${karyawanOpts}
+                    </select>
+                </td>
+                <td><input type="date" class="form-control form-control-sm" value="${row.tglMulai}" onchange="updateRowData('${row.id}', 'tglMulai', this.value)"></td>
+                <td><input type="date" class="form-control form-control-sm" value="${row.tglSelesai}" onchange="updateRowData('${row.id}', 'tglSelesai', this.value)"></td>
+                <td><input type="number" class="form-control form-control-sm text-center" value="${row.durasi}" readonly></td>
+                <td><input type="text" class="form-control form-control-sm" value="${row.cutiKe}" onchange="updateRowData('${row.id}', 'cutiKe', this.value)"></td>
+                <td><input type="number" class="form-control form-control-sm text-center fw-bold text-success" value="${row.sisaCuti}" readonly></td>
+                <td><select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'jenisCuti', this.value)">${jenisOpts}</select></td>
+                <td><input type="text" class="form-control form-control-sm" value="${row.alasan}" onchange="updateRowData('${row.id}', 'alasan', this.value)"></td>
+                <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger border-0 fw-bold" onclick="removeFormRow('${row.id}')">✕</button></td>
+            </tr>`;
+
+            containerMobile.innerHTML += `
+            <div class="mobile-card-row" id="mob_${row.id}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-success">Pemohon #${index + 1}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 p-0 fw-bold" onclick="removeFormRow('${row.id}')">✕ Hapus</button>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small mb-1 fw-semibold">Nama Karyawan</label>
+                    <select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'nama', this.value)">
+                        <option value="">-- Pilih Karyawan --</option>${karyawanOpts}
+                    </select>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small mb-1">Tgl Mulai</label>
+                        <input type="date" class="form-control form-control-sm" value="${row.tglMulai}" onchange="updateRowData('${row.id}', 'tglMulai', this.value)">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small mb-1">Tgl Selesai</label>
+                        <input type="date" class="form-control form-control-sm" value="${row.tglSelesai}" onchange="updateRowData('${row.id}', 'tglSelesai', this.value)">
+                    </div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Lama (Hari)</label>
+                        <input type="number" class="form-control form-control-sm text-center" value="${row.durasi}" readonly>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Cuti Ke</label>
+                        <input type="text" class="form-control form-control-sm" value="${row.cutiKe}" onchange="updateRowData('${row.id}', 'cutiKe', this.value)">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Sisa Cuti</label>
+                        <input type="number" class="form-control form-control-sm text-center fw-bold text-success" value="${row.sisaCuti}" readonly>
+                    </div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-5">
+                        <label class="form-label small mb-1">Jenis Cuti</label>
+                        <select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'jenisCuti', this.value)">${jenisOpts}</select>
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label small mb-1">Alasan Pengajuan</label>
+                        <input type="text" class="form-control form-control-sm" value="${row.alasan}" onchange="updateRowData('${row.id}', 'alasan', this.value)">
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    function updateRowData(rowId, field, value) {
+        const row = formDataRows.find(r => r.id === rowId);
+        if (!row) return;
+        row[field] = value;
+        updateRowLogic(row);
+        renderFormRowsUI();
+    }
+
+    function formatTanggalIndo(dateStr) {
+        if(!dateStr) return "";
+        const d = new Date(dateStr);
+        const bulanArr = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+        return `${d.getDate()} ${bulanArr[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function formatTglTabel(tMulai, tSelesai) {
+        if(!tMulai) return "";
+        const d1 = new Date(tMulai);
+        if(!tSelesai || tMulai === tSelesai) return `${d1.getDate()}`;
+        const d2 = new Date(tSelesai);
+        return `${d1.getDate()}, ${d2.getDate()}`;
+    }
+
+    async function pratinjauPDF() {
+        if(formDataRows.length === 0) {
+            alert("Harap tambahkan minimal 1 pemohon cuti.");
+            return;
+        }
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        modal.show();
+
+        const pdfDoc = await buildPDFDocument();
+        const arrayBuffer = pdfDoc.output('arraybuffer');
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const canvas = document.getElementById('pdfPreviewCanvas');
+        const context = canvas.getContext('2d');
+        const viewport = page.getViewport({ scale: 1.5 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        const renderContext = { canvasContext: context, viewport: viewport };
+        await page.render(renderContext).promise;
+    }
+
+    function downloadFromPreview() {
+        const modalEl = document.getElementById('previewModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+        prosesDanCetakPDF();
+    }
+
+    async function prosesDanCetakPDF() {
+        if(formDataRows.length === 0) {
+            alert("Harap tambahkan minimal 1 pemohon cuti.");
+            return;
+        }
+
+        const pdfDoc = await buildPDFDocument();
+        let pemohonList = [];
+        formDataRows.forEach(row => {
+            if(row.nama) {
+                const targetNama = row.nama.trim().toUpperCase();
+                pemohonList.push(row.nama);
+                const k = masterDataCuti.karyawan.find(item => (item.nama || "").trim().toUpperCase() === targetNama);
+                if(k) {
+                    k.hakCuti = Math.max(0, k.hakCuti - row.durasi);
+                    k.historiCutiTaken = (k.historiCutiTaken || 0) + row.durasi;
+                }
+            }
+        });
+
+        const noSurat = document.getElementById("suratNomor").value;
+        const ruangan = document.getElementById("suratRuangan").value.toUpperCase();
+        const bulanTahun = document.getElementById("suratBulan").value.toUpperCase();
+
+        masterDataCuti.historySurat.unshift({
+            noSurat: noSurat,
+            tglCetak: new Date().toLocaleString("id-ID"),
+            ruangan: ruangan,
+            bulanTahun: bulanTahun,
+            daftarNama: pemohonList
+        });
+
+        masterDataCuti.counterSurat += 1;
+        saveMasterDataCuti();
+        renderMasterUICuti();
+        renderHistoryUICuti();
+
+        pdfDoc.save(`Permohonan_Cuti_${ruangan}_${bulanTahun}.pdf`);
+
+        formDataRows = [];
+        addFormRow();
+        generateNoSuratOtomatis();
+        alert("Pengajuan cuti berhasil disahkan & file PDF telah diunduh!");
+    }
+
+    function cetakUlangHistory(idx) {
+        buildPDFDocument().then(pdfDoc => {
+            const h = masterDataCuti.historySurat[idx];
+            pdfDoc.save(`Permohonan_Cuti_${h.ruangan}_${h.bulanTahun}.pdf`);
+        });
+    }
+
+    async function buildPDFDocument() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const FONT = "helvetica";
+        let startY = 15;
+
+        if (masterDataCuti.renderedKopImageBase64) {
+            doc.addImage(masterDataCuti.renderedKopImageBase64, 'PNG', 15, 8, 180, 32);
+            startY = 48;
+        }
+
+        const tglSurat = formatTanggalIndo(document.getElementById("suratTanggal").value);
+        const noSurat = document.getElementById("suratNomor").value;
+        const ruangan = document.getElementById("suratRuangan").value.toUpperCase();
+        const bulanTahun = document.getElementById("suratBulan").value.toUpperCase();
+
+        doc.setFont(FONT, "normal");
+        doc.setFontSize(10);
+        doc.text(`Brebes, ${tglSurat}`, 140, startY);
+        startY += 6;
+        doc.text(`Nomor\t: ${noSurat}`, 15, startY);
+        doc.text(`Kepada`, 140, startY);
+        startY += 5;
+        doc.text(`Perihal\t: Permohonan Persetujuan Cuti`, 15, startY);
+        doc.setFont(FONT, "bold");
+        doc.text(`Yth : Direktur RS. Bhakti Asih Brebes`, 140, startY);
+        startY += 5;
+        doc.setFont(FONT, "normal");
+        doc.text(`Di –`, 140, startY);
+        startY += 5;
+        doc.text(`Brebes`, 140, startY);
+        startY += 12;
+
+        doc.setFontSize(10);
+        const textPembuka = `Bersama ini kami sampaikan daftar karyawan/i Ruang ${ruangan} yang mengajukan cuti pada bulan ${bulanTahun} untuk kami mintakan persetujuan pengambilan cuti dengan data sebagai berikut :`;
+        const splitPembuka = doc.splitTextToSize(textPembuka, 180);
+        doc.text(splitPembuka, 15, startY);
+        startY += (splitPembuka.length * 5) + 3;
+
+        const tableBody = [];
+        formDataRows.forEach((row, index) => {
+            if(row.nama) {
+                tableBody.push([
+                    `${index + 1}.`,
+                    row.nama,
+                    formatTglTabel(row.tglMulai, row.tglSelesai),
+                    row.cutiKe,
+                    row.sisaCuti,
+                    row.jenisCuti,
+                    row.alasan
+                ]);
+            }
+        });
+
+        doc.autoTable({
+            startY: startY,
+            head: [['No', 'Nama', 'Tanggal Pengajuan Cuti', 'Cuti Ke …..', 'Sisa Cuti', 'Jenis cuti yang diajukan', 'Alasan Pengajuan Cuti']],
+            body: tableBody,
+            theme: 'grid',
+            styles: { font: FONT, fontSize: 9, textColor: [0, 0, 0], lineWidth: 0.2, lineColor: [0, 0, 0] },
+            headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', valign: 'middle' },
+            bodyStyles: { valign: 'middle' },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 10 },
+                1: { cellWidth: 35 },
+                2: { halign: 'center', cellWidth: 22 },
+                3: { halign: 'center', cellWidth: 20 },
+                4: { halign: 'center', cellWidth: 15 },
+                5: { halign: 'center', cellWidth: 25 },
+                6: { cellWidth: 53 }
+            },
+            margin: { left: 15, right: 15 }
+        });
+
+        let finalY = doc.lastAutoTable.finalY + 8;
+        doc.setFont(FONT, "normal");
+        doc.setFontSize(10);
+        const textPenutup = "Demikian data permohonan persetujuan cuti ini ini kami sampaikan, atas perhatiann dan persetujuan yang diberikan kami sampaikan terima kasih.";
+        const splitPenutup = doc.splitTextToSize(textPenutup, 180);
+        doc.text(splitPenutup, 15, finalY);
+        finalY += 10;
+
+        doc.setFontSize(9.5);
+        doc.text("Diketahui oleh HRD dan atasan langsungnya", 15, finalY);
+        doc.text("Yang Mengajukan,", 140, finalY);
+        finalY += 5;
+        doc.setFont(FONT, "bold");
+        doc.text("Tanggal dan", 15, finalY);
+        doc.text("Tanggal dan Ttd atasan langsungnya", 60, finalY);
+        finalY += 4;
+        doc.text("Ttd HRD", 15, finalY);
+        finalY += 18;
+        doc.text(masterDataCuti.ttd.hrdNama, 140, finalY);
+        finalY += 4;
+        doc.setFont(FONT, "normal");
+        doc.text("NRP. \t", 140, finalY);
+        finalY += 8;
+
+        doc.setFont(FONT, "bold");
+        doc.text("Yang Menyetujui", 75, finalY);
+        finalY += 4;
+        doc.text(masterDataCuti.ttd.jabatanMenyetujui, 75, finalY);
+        finalY += 20;
+        doc.text(masterDataCuti.ttd.namaMenyetujui, 75, finalY);
+        finalY += 4;
+        doc.setFont(FONT, "normal");
+        doc.text(`NRP. ${masterDataCuti.ttd.nrpMenyetujui}`, 75, finalY);
+        finalY += 10;
+
+        doc.setFont(FONT, "bold");
+        doc.setFontSize(9);
+        doc.text("Catatan : ", 15, finalY);
+        finalY += 4;
+        doc.setFont(FONT, "normal");
+        doc.text("Pengajuan persetujuan cuti diajukan melalui HRD maksimal pada tanggal 20 disetiap bulannya", 15, finalY);
+        finalY += 4;
+        doc.text("Jenis cuti yang diajukan diisi dengan Cuti Tahunan/Cuti Melahirkan/Cuti Haji/Cuti Umroh/Cuti Hajatan.", 15, finalY);
+
+        return doc;
+    }
+
+    // =========================================================================
+    // CODE APLIKASI ATUR JADWAL SHIFT (STORAGE KEY TERISOLASI)
+    // =========================================================================
+    const SHIFT_STORAGE_KEY = "app_jadwal_rsba_v10";
+
+    const LOCAL_HOLIDAY_DATABASE = {
+        "2026-1": [{ tgl: 1, ket: "Tahun Baru 2026 Masehi" }, { tgl: 16, ket: "Isra Mikraj Nabi Muhammad SAW" }],
+        "2026-2": [{ tgl: 17, ket: "Tahun Baru Imlek 2577 Kongzili" }],
+        "2026-3": [{ tgl: 19, ket: "Hari Suci Nyepi Tahun Baru Saka 1948" }, { tgl: 20, ket: "Hari Raya Idul Fitri 1447 H" }, { tgl: 21, ket: "Hari Raya Idul Fitri 1447 H" }],
+        "2026-4": [{ tgl: 3, ket: "Wafat Yesus Kristus" }],
+        "2026-5": [{ tgl: 1, ket: "Hari Buruh Internasional" }, { tgl: 14, ket: "Kenaikan Yesus Kristus" }, { tgl: 27, ket: "Hari Raya Idul Adha 1447 H" }, { tgl: 31, ket: "Hari Raya Waisak 2570 BE" }],
+        "2026-6": [{ tgl: 1, ket: "Hari Lahir Pancasila" }, { tgl: 16, ket: "Tahun Baru Islam 1448 H" }],
+        "2026-7": [],
+        "2026-8": [{ tgl: 17, ket: "Hari Kemerdekaan Republik Indonesia" }, { tgl: 25, ket: "Maulid Nabi Muhammad SAW" }],
+        "2026-9": [],
+        "2026-10": [],
+        "2026-11": [],
+        "2026-12": [{ tgl: 25, ket: "Hari Raya Natal" }]
+    };
+
+    const defaultShiftData = {
+        bulan: 11,
+        tahun: 2026,
+        judul: "JADWAL KASIR NOVEMBER 2026",
+        karyawan: [
+            { id: 1, nama: "DUL MUID", unit: "Kasir RI" },
+            { id: 2, nama: "YULI MAULIDA", unit: "Kasir RI" },
+            { id: 3, nama: "FAUZUL", unit: "Kasir RI" },
+            { id: 4, nama: "WINDARTI", unit: "Kasir Poli" },
+            { id: 5, nama: "DWI KRISNA", unit: "Kasir Poli" },
+            { id: 6, nama: "MB NETI", unit: "KEU" }
+        ],
+        shifts: {},
+        onCall: {},
+        holidays: [],
+        notes: "Note :\nTgl 26 Agust s.d 10 Sept, jadwal kasir 1 dikondisikan untuk rekapitulasi visit Dokter.\nFAUZUL : TAMBAHAN LIBUR 1X, KOMPENSASI IKUT KEGIATAN CSR+SAMBUT BUPATI TGL 30 JUNI 2026"
+    };
+
+    let appStateShift = JSON.parse(JSON.stringify(defaultShiftData));
+
+    function loadShiftDataFromStorage() {
+        const saved = localStorage.getItem(SHIFT_STORAGE_KEY);
+        if (saved) {
+            try {
+                appStateShift = JSON.parse(saved);
+            } catch(e) {
+                appStateShift = JSON.parse(JSON.stringify(defaultShiftData));
+            }
+        }
+        document.getElementById("selectBulan").value = appStateShift.bulan || 11;
+        document.getElementById("selectTahun").value = appStateShift.tahun || 2026;
+        document.getElementById("inputJudulJadwal").value = appStateShift.judul || "JADWAL KASIR NOVEMBER 2026";
+        document.getElementById("inputCatatanKhusus").value = appStateShift.notes || "";
+    }
+
+    function saveScheduleData() {
+        appStateShift.bulan = parseInt(document.getElementById("selectBulan").value);
+        appStateShift.tahun = parseInt(document.getElementById("selectTahun").value);
+        appStateShift.judul = document.getElementById("inputJudulJadwal").value;
+        appStateShift.notes = document.getElementById("inputCatatanKhusus").value;
+
+        localStorage.setItem(SHIFT_STORAGE_KEY, JSON.stringify(appStateShift));
+        document.getElementById("printJudulJadwal").innerText = appStateShift.judul;
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function onPeriodChange() {
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const monthNames = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+        
+        document.getElementById("inputJudulJadwal").value = `JADWAL KASIR ${monthNames[bulan - 1]} ${tahun}`;
+        saveScheduleData();
+        renderAllShiftUI();
+        fetchNationalHolidaysAuto(false);
+    }
+
+    async function fetchNationalHolidaysAuto(showAlert = false) {
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const badge = document.getElementById("holidayLoadingBadge");
+        if(badge) badge.classList.remove("d-none");
+
+        let fetchedHolidays = [];
+        let isSuccess = false;
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+            const res = await fetch(`https://dayoffapi.vercel.app/api?year=${tahun}&month=${bulan}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        if (item.is_holiday) {
+                            const dateParts = item.holiday_date.split("-");
+                            const day = parseInt(dateParts[2]);
+                            fetchedHolidays.push({ tgl: day, ket: item.holiday_name });
+                        }
+                    });
+                    isSuccess = true;
+                }
+            }
+        } catch (e) {
+            console.warn("API External lambat/terkendala, beralih ke Fallback Database Lokal.", e);
+        }
+
+        if (!isSuccess) {
+            const key = `${tahun}-${bulan}`;
+            if (LOCAL_HOLIDAY_DATABASE[key]) {
+                fetchedHolidays = [...LOCAL_HOLIDAY_DATABASE[key]];
+            }
+        }
+
+        appStateShift.holidays = fetchedHolidays;
+        saveScheduleData();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+
+        if(badge) badge.classList.add("d-none");
+
+        if (showAlert) {
+            alert(`Sistem berhasil memuat ${fetchedHolidays.length} hari libur nasional untuk periode ${bulan}/${tahun}.`);
+        }
+    }
+
+    function renderAllShiftUI() {
+        renderScheduleMatrix();
+        renderMasterKaryawanShiftUI();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function renderScheduleMatrix() {
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const totalDays = new Date(tahun, bulan, 0).getDate();
+
+        const dayNamesIndo = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+        let daysHeaderHtml = `<th style="width: 25px;">No.</th><th style="width: 70px;">Unit</th><th style="width: 110px;">Nama</th>`;
+        let datesHeaderHtml = `<th colspan="3" class="bg-light">Hari / Tanggal</th>`;
+
+        let weekendCols = [];
+
+        for (let d = 1; d <= totalDays; d++) {
+            const dateObj = new Date(tahun, bulan - 1, d);
+            const dayOfWeek = dateObj.getDay();
+            const dayName = dayNamesIndo[dayOfWeek];
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+            if (isWeekend) weekendCols.push(d);
+
+            const weekendClass = isWeekend ? 'weekend-header' : '';
+            daysHeaderHtml += `<th class="${weekendClass}">${dayName}</th>`;
+            datesHeaderHtml += `<th class="${weekendClass}">${d}</th>`;
+        }
+
+        daysHeaderHtml += `<th style="width: 35px;" class="bg-light">TOTAL</th><th style="width: 35px;" class="bg-light">ON</th><th style="width: 25px;">P</th><th style="width: 25px;">S</th><th style="width: 25px;">T</th>`;
+        datesHeaderHtml += `<th class="bg-light">LIBUR</th><th class="bg-light">CALL</th><th>Pagi</th><th>Siang</th><th>Tengah</th>`;
+
+        document.getElementById("headerDaysRow").innerHTML = daysHeaderHtml;
+        document.getElementById("headerDatesRow").innerHTML = datesHeaderHtml;
+
+        let tbodyHtml = "";
+
+        appStateShift.karyawan.forEach((k, idx) => {
+            const kId = k.id.toString();
+            if (!appStateShift.shifts[kId]) appStateShift.shifts[kId] = {};
+            if (!appStateShift.onCall[kId]) appStateShift.onCall[kId] = {};
+
+            let countL = 0, countP = 0, countS = 0, countT = 0, countOC = 0;
+
+            for (let d = 1; d <= totalDays; d++) {
+                const shiftVal = appStateShift.shifts[kId][d] || "";
+                const isOC = !!appStateShift.onCall[kId][d];
+
+                if (shiftVal === "L") countL++;
+                else if (shiftVal === "P") countP++;
+                else if (shiftVal === "S") countS++;
+                else if (shiftVal === "T") countT++;
+                if (isOC) countOC++;
+            }
+
+            let mainRowHtml = `<tr>
+                <td class="fw-bold">${idx + 1}</td>
+                <td class="fw-semibold text-start px-1">${k.unit}</td>
+                <td class="fw-bold text-start px-1">${k.nama}</td>`;
+
+            let ocRowHtml = `<tr class="sub-row-oc">
+                <td colspan="3" class="text-end pe-2 text-muted fst-italic" style="font-size:0.65rem;">On Call (OC)</td>`;
+
+            for (let d = 1; d <= totalDays; d++) {
+                const shiftVal = appStateShift.shifts[kId][d] || "";
+                const isOC = !!appStateShift.onCall[kId][d];
+                const isWeekend = weekendCols.includes(d);
+                const weekendBg = isWeekend ? 'weekend-cell' : '';
+
+                const shiftClass = shiftVal ? `shift-${shiftVal.replace('.', '')}` : '';
+
+                mainRowHtml += `<td class="${weekendBg}">
+                    <select class="shift-select ${shiftClass}" onchange="updateShift('${kId}', ${d}, this.value)">
+                        <option value="" ${shiftVal===''?'selected':''}>-</option>
+                        <option value="P" ${shiftVal==='P'?'selected':''}>P</option>
+                        <option value="S" ${shiftVal==='S'?'selected':''}>S</option>
+                        <option value="T" ${shiftVal==='T'?'selected':''}>T</option>
+                        <option value="L" ${shiftVal==='L'?'selected':''}>L</option>
+                        <option value="C" ${shiftVal==='C'?'selected':''}>C</option>
+                        <option value="Spoli" ${shiftVal==='Spoli'?'selected':''}>Spoli</option>
+                    </select>
+                </td>`;
+
+                ocRowHtml += `<td class="${weekendBg}">
+                    <input type="checkbox" class="form-check-input" ${isOC?'checked':''} onchange="toggleOnCall('${kId}', ${d}, this.checked)">
+                </td>`;
+            }
+
+            mainRowHtml += `<td class="fw-bold text-danger bg-light">${countL}</td>
+                <td class="fw-bold text-dark bg-light">${countOC}</td>
+                <td class="fw-bold text-primary">${countP}</td>
+                <td class="fw-bold text-warning">${countS}</td>
+                <td class="fw-bold text-secondary">${countT}</td>
+            </tr>`;
+
+            ocRowHtml += `<td colspan="5" class="bg-light"></td></tr>`;
+
+            tbodyHtml += mainRowHtml + ocRowHtml;
+        });
+
+        document.getElementById("scheduleTbody").innerHTML = tbodyHtml;
+    }
+
+    function updateShift(kId, day, value) {
+        if (!appStateShift.shifts[kId]) appStateShift.shifts[kId] = {};
+        appStateShift.shifts[kId][day] = value;
+        saveScheduleData();
+        renderScheduleMatrix();
+    }
+
+    function toggleOnCall(kId, day, checked) {
+        if (!appStateShift.onCall[kId]) appStateShift.onCall[kId] = {};
+        appStateShift.onCall[kId][day] = checked;
+        saveScheduleData();
+        renderScheduleMatrix();
+    }
+
+    function generateAutoSchedule() {
+        if (!confirm("Apakah Anda yakin ingin meregenerasi jadwal otomatis? Hari libur nasional dan aturan unit akan diterapkan.")) {
+            return;
+        }
+
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const totalDays = new Date(tahun, bulan, 0).getDate();
+
+        const karyawanList = appStateShift.karyawan;
+        if (!karyawanList || karyawanList.length === 0) {
+            alert("Belum ada data karyawan shift!");
+            return;
+        }
+
+        appStateShift.shifts = {};
+        appStateShift.onCall = {};
+        karyawanList.forEach(k => {
+            const kId = k.id.toString();
+            appStateShift.shifts[kId] = {};
+            appStateShift.onCall[kId] = {};
+        });
+
+        const holidayDates = (appStateShift.holidays || []).map(h => h.tgl);
+        const kasirRIList = karyawanList.filter(k => k.unit === "Kasir RI");
+        const kasirPoliList = karyawanList.filter(k => k.unit === "Kasir Poli");
+        const unitLainList = karyawanList.filter(k => k.unit !== "Kasir RI" && k.unit !== "Kasir Poli");
+
+        unitLainList.forEach(k => {
+            const kId = k.id.toString();
+            for (let d = 1; d <= totalDays; d++) {
+                const dayOfWeek = new Date(tahun, bulan - 1, d).getDay();
+                if (dayOfWeek === 0 || holidayDates.includes(d)) {
+                    appStateShift.shifts[kId][d] = "L";
+                } else {
+                    appStateShift.shifts[kId][d] = "P";
+                }
+            }
+        });
+
+        if (kasirPoliList.length > 0) {
+            const ppssPattern = ["P", "P", "S", "S"];
+
+            kasirPoliList.forEach((k, idx) => {
+                const kId = k.id.toString();
+                let patternPointer = (idx * 2) % ppssPattern.length;
+
+                for (let d = 1; d <= totalDays; d++) {
+                    const dayOfWeek = new Date(tahun, bulan - 1, d).getDay();
+                    const isHoliday = holidayDates.includes(d);
+
+                    if (dayOfWeek === 0 || isHoliday) {
+                        appStateShift.shifts[kId][d] = "L";
+                    } else {
+                        appStateShift.shifts[kId][d] = ppssPattern[patternPointer % ppssPattern.length];
+                        patternPointer++;
+                    }
+                }
+            });
+        }
+
+        if (kasirRIList.length > 0) {
+            const sundayDates = [];
+            for (let d = 1; d <= totalDays; d++) {
+                if (new Date(tahun, bulan - 1, d).getDay() === 0) {
+                    sundayDates.push(d);
+                }
+            }
+
+            const sundayOffTracker = {};
+            kasirRIList.forEach(k => sundayOffTracker[k.id] = 0);
+
+            const firstDayIsSunday = (new Date(tahun, bulan - 1, 1).getDay() === 0);
+
+            sundayDates.forEach((sunDay, weekIdx) => {
+                const sortedBySundayOff = [...kasirRIList].sort((a, b) => sundayOffTracker[a.id] - sundayOffTracker[b.id]);
+                const offKasirSun = sortedBySundayOff[0];
+                const offKasirId = offKasirSun.id.toString();
+
+                appStateShift.shifts[offKasirId][sunDay] = "L";
+                sundayOffTracker[offKasirSun.id]++;
+
+                const workingOnSunday = kasirRIList.filter(k => k.id !== offKasirSun.id);
+
+                if (sunDay === 1 && firstDayIsSunday && workingOnSunday.length > 0) {
+                    const tuesdayOffKasir = workingOnSunday[0];
+                    appStateShift.shifts[tuesdayOffKasir.id.toString()][3] = "L";
+
+                    for (let i = 1; i < workingOnSunday.length; i++) {
+                        const otherId = workingOnSunday[i].id.toString();
+                        appStateShift.shifts[otherId][2] = "L"; 
+                    }
+                } else {
+                    workingOnSunday.forEach((otherKasir, idx) => {
+                        const otherId = otherKasir.id.toString();
+                        let targetDay = ((weekIdx + idx) % 2 === 0) ? sunDay - 1 : sunDay + 1;
+
+                        if (targetDay >= 1 && targetDay <= totalDays) {
+                            appStateShift.shifts[otherId][targetDay] = "L";
+                        } else {
+                            let altDay = (targetDay < 1) ? sunDay + 1 : sunDay - 1;
+                            if (altDay >= 1 && altDay <= totalDays) {
+                                appStateShift.shifts[otherId][altDay] = "L";
+                            }
+                        }
+                    });
+                }
+            });
+
+            kasirRIList.forEach(k => {
+                const kId = k.id.toString();
+                let currentOffCount = 0;
+                for (let d = 1; d <= totalDays; d++) {
+                    if (appStateShift.shifts[kId][d] === "L") currentOffCount++;
+                }
+
+                for (let d = 2; d < totalDays; d++) {
+                    if (currentOffCount >= 5) break;
+                    if (!appStateShift.shifts[kId][d] && appStateShift.shifts[kId][d-1] !== "L" && appStateShift.shifts[kId][d+1] !== "L") {
+                        let otherWorking = kasirRIList.filter(o => o.id !== k.id && appStateShift.shifts[o.id.toString()][d] !== "L");
+                        if (otherWorking.length >= 2) {
+                            appStateShift.shifts[kId][d] = "L";
+                            currentOffCount++;
+                        }
+                    }
+                }
+            });
+
+            const shiftCounts = {};
+            kasirRIList.forEach(k => {
+                shiftCounts[k.id] = { P: 0, S: 0, T: 0 };
+            });
+
+            for (let d = 1; d <= totalDays; d++) {
+                const workingKasir = kasirRIList.filter(k => appStateShift.shifts[k.id.toString()][d] !== "L");
+                const offKasirToday = kasirRIList.filter(k => appStateShift.shifts[k.id.toString()][d] === "L");
+
+                if (offKasirToday.length === 0 && workingKasir.length >= 3) {
+                    
+                    let candidatePagi = [...workingKasir].sort((a, b) => shiftCounts[a.id].P - shiftCounts[b.id].P);
+                    
+                    let pagiKasir = candidatePagi[0];
+                    const prevPagi = d > 1 ? appStateShift.shifts[pagiKasir.id.toString()][d - 1] : null;
+                    if (prevPagi === "T" && candidatePagi.length > 1) {
+                        pagiKasir = candidatePagi[1];
+                    }
+
+                    let remainingForST = workingKasir.filter(k => k.id !== pagiKasir.id);
+                    let candidateSiang = [...remainingForST].sort((a, b) => shiftCounts[a.id].S - shiftCounts[b.id].S);
+                    let siangKasir = candidateSiang[0];
+                    let tengahKasir = remainingForST.find(k => k.id !== siangKasir.id);
+
+                    appStateShift.shifts[pagiKasir.id.toString()][d] = "P";
+                    appStateShift.shifts[siangKasir.id.toString()][d] = "S";
+                    appStateShift.shifts[tengahKasir.id.toString()][d] = "T";
+
+                    shiftCounts[pagiKasir.id].P++;
+                    shiftCounts[siangKasir.id].S++;
+                    shiftCounts[tengahKasir.id].T++;
+                } 
+                else {
+                    if (workingKasir.length >= 2) {
+                        const k1 = workingKasir[0];
+                        const k2 = workingKasir[1];
+
+                        const k1Id = k1.id.toString();
+                        const k2Id = k2.id.toString();
+
+                        const prev1 = d > 1 ? appStateShift.shifts[k1Id][d - 1] : null;
+                        const prev2 = d > 1 ? appStateShift.shifts[k2Id][d - 1] : null;
+
+                        if (prev1 === "T" || prev1 === "S") {
+                            appStateShift.shifts[k1Id][d] = "S";
+                            appStateShift.shifts[k2Id][d] = "P";
+                            shiftCounts[k1.id].S++;
+                            shiftCounts[k2.id].P++;
+                        } else if (prev2 === "T" || prev2 === "S") {
+                            appStateShift.shifts[k2Id][d] = "S";
+                            appStateShift.shifts[k1Id][d] = "P";
+                            shiftCounts[k2.id].S++;
+                            shiftCounts[k1.id].P++;
+                        } else {
+                            if (shiftCounts[k1.id].P <= shiftCounts[k2.id].P) {
+                                appStateShift.shifts[k1Id][d] = "P";
+                                appStateShift.shifts[k2Id][d] = "S";
+                                shiftCounts[k1.id].P++;
+                                shiftCounts[k2.id].S++;
+                            } else {
+                                appStateShift.shifts[k1Id][d] = "S";
+                                appStateShift.shifts[k2Id][d] = "P";
+                                shiftCounts[k1.id].S++;
+                                shiftCounts[k2.id].P++;
+                            }
+                        }
+                    } else if (workingKasir.length === 1) {
+                        appStateShift.shifts[workingKasir[0].id.toString()][d] = "P";
+                        shiftCounts[workingKasir[0].id].P++;
+                    }
+                }
+            }
+
+            let ocIndexCounter = 0;
+            for (let d = 1; d <= totalDays; d++) {
+                let assigned = false;
+                for (let attempt = 0; attempt < kasirRIList.length; attempt++) {
+                    let targetIdx = (ocIndexCounter + attempt) % kasirRIList.length;
+                    let candidate = kasirRIList[targetIdx];
+                    let candId = candidate.id.toString();
+
+                    if (appStateShift.shifts[candId][d] !== "L") {
+                        appStateShift.onCall[candId][d] = true;
+                        ocIndexCounter = (targetIdx + 1) % kasirRIList.length;
+                        assigned = true;
+                        break;
+                    }
+                }
+
+                if (!assigned && kasirRIList.length > 0) {
+                    appStateShift.onCall[kasirRIList[0].id.toString()][d] = true;
+                }
+            }
+        }
+
+        saveScheduleData();
+        renderScheduleMatrix();
+
+        alert("Generasi Jadwal Berhasil! Hari libur nasional terpasang otomatis.");
+    }
+
+    function openPreviewModal() {
+        saveScheduleData();
+        
+        const previewContainer = document.getElementById("pdfPreviewContent");
+        previewContainer.innerHTML = "";
+
+        const headerClone = document.getElementById("printAreaHeader").cloneNode(true);
+        const matrixClone = document.getElementById("printAreaMatrix").cloneNode(true);
+        const footerClone = document.getElementById("printAreaFooter").cloneNode(true);
+
+        const loadingBadge = footerClone.querySelector("#holidayLoadingBadge");
+        if (loadingBadge) loadingBadge.remove();
+
+        const selects = matrixClone.querySelectorAll("select.shift-select");
+        selects.forEach(sel => {
+            const val = sel.value;
+            const parentTd = sel.parentElement;
+            if (val) {
+                const shiftClass = `shift-${val.replace('.', '')}`;
+                parentTd.innerHTML = `<span class="badge ${shiftClass} px-2 py-1">${val}</span>`;
+            } else {
+                parentTd.innerHTML = `<span class="text-muted">-</span>`;
+            }
+        });
+
+        const checkboxes = matrixClone.querySelectorAll("input[type='checkbox']");
+        checkboxes.forEach(cb => {
+            const parentTd = cb.parentElement;
+            parentTd.innerHTML = cb.checked ? '<span class="badge badge-OC">OC</span>' : '<span class="text-muted">-</span>';
+        });
+
+        previewContainer.appendChild(headerClone);
+        previewContainer.appendChild(matrixClone);
+        previewContainer.appendChild(footerClone);
+
+        const modal = new bootstrap.Modal(document.getElementById('previewPdfModal'));
+        modal.show();
+    }
+
+    function downloadFromShiftPreview() {
+        const modalEl = document.getElementById('previewPdfModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        setTimeout(() => {
+            executePdfDownload();
+        }, 300);
+    }
+
+    function downloadDirectPDF() {
+        executePdfDownload();
+    }
+
+    function executePdfDownload() {
+        saveScheduleData();
+        
+        const element = document.createElement("div");
+        element.className = "pdf-export-container";
+
+        const headerClone = document.getElementById("printAreaHeader").cloneNode(true);
+        const matrixClone = document.getElementById("printAreaMatrix").cloneNode(true);
+        const footerClone = document.getElementById("printAreaFooter").cloneNode(true);
+
+        const loadingBadge = footerClone.querySelector("#holidayLoadingBadge");
+        if (loadingBadge) loadingBadge.remove();
+
+        const selects = matrixClone.querySelectorAll("select.shift-select");
+        selects.forEach(sel => {
+            const val = sel.value;
+            const parentTd = sel.parentElement;
+            if (val) {
+                const shiftClass = `shift-${val.replace('.', '')}`;
+                parentTd.innerHTML = `<span class="badge ${shiftClass}">${val}</span>`;
+            } else {
+                parentTd.innerHTML = `<span style="color:#666;">-</span>`;
+            }
+        });
+
+        const checkboxes = matrixClone.querySelectorAll("input[type='checkbox']");
+        checkboxes.forEach(cb => {
+            const parentTd = cb.parentElement;
+            parentTd.innerHTML = cb.checked ? '<span class="badge badge-OC">OC</span>' : '<span style="color:#666;">-</span>';
+        });
+
+        element.appendChild(headerClone);
+        element.appendChild(matrixClone);
+        element.appendChild(footerClone);
+
+        const filename = (appStateShift.judul || 'JADWAL_KASIR').replace(/[/\\?%*:|"<>]/g, '_') + '.pdf';
+
+        const opt = {
+            margin:       [0.15, 0.15, 0.15, 0.15],
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 1.0 },
+            html2canvas:  { scale: 3, useCORS: true, logging: false },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }
+
+    function exportToExcelXLSX() {
+        saveScheduleData();
+
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const totalDays = new Date(tahun, bulan, 0).getDate();
+        const dayNamesIndo = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+        let excelData = [];
+
+        excelData.push([appStateShift.judul || "JADWAL KASIR"]);
+        excelData.push(["RS. BHAKTI ASIH BREBES"]);
+        excelData.push([]);
+
+        let rowDays = ["No", "Unit", "Nama"];
+        for (let d = 1; d <= totalDays; d++) {
+            const dayOfWeek = new Date(tahun, bulan - 1, d).getDay();
+            rowDays.push(dayNamesIndo[dayOfWeek]);
+        }
+        rowDays.push("TOTAL LIBUR", "ON CALL", "Pagi", "Siang", "Tengah");
+        excelData.push(rowDays);
+
+        let rowDates = ["", "", "Hari / Tanggal"];
+        for (let d = 1; d <= totalDays; d++) {
+            rowDates.push(d);
+        }
+        rowDates.push("", "", "", "", "");
+        excelData.push(rowDates);
+
+        appStateShift.karyawan.forEach((k, idx) => {
+            const kId = k.id.toString();
+            let countL = 0, countP = 0, countS = 0, countT = 0, countOC = 0;
+
+            for (let d = 1; d <= totalDays; d++) {
+                const shiftVal = appStateShift.shifts[kId] ? (appStateShift.shifts[kId][d] || "") : "";
+                const isOC = appStateShift.onCall[kId] ? !!appStateShift.onCall[kId][d] : false;
+
+                if (shiftVal === "L") countL++;
+                else if (shiftVal === "P") countP++;
+                else if (shiftVal === "S") countS++;
+                else if (shiftVal === "T") countT++;
+                if (isOC) countOC++;
+            }
+
+            let rowShift = [idx + 1, k.unit, k.nama];
+            for (let d = 1; d <= totalDays; d++) {
+                rowShift.push(appStateShift.shifts[kId] ? (appStateShift.shifts[kId][d] || "-") : "-");
+            }
+            rowShift.push(countL, countOC, countP, countS, countT);
+            excelData.push(rowShift);
+
+            let rowOC = ["", "", "On Call (OC)"];
+            for (let d = 1; d <= totalDays; d++) {
+                rowOC.push((appStateShift.onCall[kId] && appStateShift.onCall[kId][d]) ? "OC" : "");
+            }
+            rowOC.push("", "", "", "", "");
+            excelData.push(rowOC);
+        });
+
+        excelData.push([]);
+        excelData.push(["Hari Libur Nasional:"]);
+        if (appStateShift.holidays && appStateShift.holidays.length > 0) {
+            appStateShift.holidays.forEach(h => {
+                excelData.push([`Tanggal ${h.tgl}: ${h.ket}`]);
+            });
+        } else {
+            excelData.push(["- Tidak ada hari libur nasional pada periode ini."]);
+        }
+
+        excelData.push([]);
+        excelData.push(["Catatan Khusus:"]);
+        excelData.push([appStateShift.notes || "-"]);
+
+        const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Jadwal Shift");
+
+        const filename = (appStateShift.judul || 'Jadwal_Shift_RSBA').replace(/[/\\?%*:|"<>]/g, '_') + '.xlsx';
+        XLSX.writeFile(workbook, filename);
+    }
+
+    function renderMasterKaryawanShiftUI() {
+        const tbody = document.getElementById("masterKaryawanShiftTbody");
+        tbody.innerHTML = "";
+
+        appStateShift.karyawan.forEach((k, idx) => {
+            tbody.innerHTML += `<tr>
+                <td>${idx + 1}</td>
+                <td class="fw-bold">${k.nama}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary border">${k.unit}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger p-0 px-2" onclick="hapusKaryawanMasterShift(${k.id})">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    function tambahKaryawanMasterShift() {
+        const nama = document.getElementById("masterNamaShift").value.trim().toUpperCase();
+        const unit = document.getElementById("masterUnitShift").value;
+
+        if (!nama) {
+            alert("Harap masukkan nama karyawan shift.");
+            return;
+        }
+
+        const newId = Date.now();
+        appStateShift.karyawan.push({ id: newId, nama: nama, unit: unit });
+        document.getElementById("masterNamaShift").value = "";
+
+        saveScheduleData();
+        renderMasterKaryawanShiftUI();
+        renderScheduleMatrix();
+    }
+
+    function hapusKaryawanMasterShift(id) {
+        if (confirm("Apakah Anda yakin ingin menghapus karyawan ini dari jadwal shift?")) {
+            appStateShift.karyawan = appStateShift.karyawan.filter(k => k.id !== id);
+            delete appStateShift.shifts[id.toString()];
+            delete appStateShift.onCall[id.toString()];
+
+            saveScheduleData();
+            renderMasterKaryawanShiftUI();
+            renderScheduleMatrix();
+        }
+    }
+
+    function renderNotesAndHolidaysMaster() {
+        const tbody = document.getElementById("tbodyHariLiburMaster");
+        tbody.innerHTML = "";
+
+        (appStateShift.holidays || []).forEach((h, idx) => {
+            tbody.innerHTML += `<tr>
+                <td class="fw-bold text-center">${h.tgl}</td>
+                <td>${h.ket}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-link text-danger p-0 fw-bold" onclick="hapusHariLibur(${idx})">✕</button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    function renderNotesAndHolidaysDisplay() {
+        const hList = document.getElementById("displayHolidaysList");
+        hList.innerHTML = "";
+
+        if (!appStateShift.holidays || appStateShift.holidays.length === 0) {
+            hList.innerHTML = `<li class="list-group-item text-muted">Tidak ada hari libur nasional pada periode ini.</li>`;
+        } else {
+            appStateShift.holidays.forEach(h => {
+                hList.innerHTML += `<li class="list-group-item py-1 px-0 border-0">
+                    <strong class="text-danger me-2">Tgl ${h.tgl}:</strong> ${h.ket}
+                </li>`;
+            });
+        }
+
+        const notesBox = document.getElementById("displayNotesContent");
+        notesBox.innerHTML = (appStateShift.notes || "-").replace(/\n/g, '<br>');
+    }
+
+    function tambahHariLibur() {
+        const tgl = parseInt(document.getElementById("inputTglLibur").value);
+        const ket = document.getElementById("inputKetLibur").value.trim();
+
+        if (!tgl || !ket) {
+            alert("Harap isi tanggal dan keterangan libur.");
+            return;
+        }
+
+        if (!appStateShift.holidays) appStateShift.holidays = [];
+        appStateShift.holidays.push({ tgl: tgl, ket: ket });
+
+        document.getElementById("inputTglLibur").value = "";
+        document.getElementById("inputKetLibur").value = "";
+
+        saveScheduleData();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function hapusHariLibur(idx) {
+        appStateShift.holidays.splice(idx, 1);
+        saveScheduleData();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function simpanCatatanKhusus() {
+        saveScheduleData();
+        alert("Catatan khusus berhasil disimpan!");
+    }
+
+    // =========================================================================
+    // INISIALISASI SELURUH APLIKASI
+    // =========================================================================
+    document.addEventListener("DOMContentLoaded", function() {
+        // Init Aplikasi Cuti
+        loadMasterDataCuti();
+        document.getElementById("suratTanggal").value = new Date().toISOString().substring(0, 10);
+        generateNoSuratOtomatis();
+        renderMasterUICuti();
+        renderHistoryUICuti();
+        updateKopStatusUI();
+        addFormRow();
+
+        // Init Aplikasi Shift
+        loadShiftDataFromStorage();
+        renderAllShiftUI();
+        fetchNationalHolidaysAuto(false);
+    });
+</script>
+</body>
+</html>
