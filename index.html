@@ -1,0 +1,2360 @@
+<!DOCTYPE html>
+<html lang="id" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MANAJEMEN CUTI DAN JADWAL RSBA</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#198754">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1232/1232936.png">
+
+    <!-- Bootstrap 5 CSS & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- PDF & Excel Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bs-body-bg: #f4f6f9;
+        }
+        [data-bs-theme="dark"] {
+            --bs-body-bg: #121212;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 0.85rem;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* HEADER HIJAU GRADASI PUTIH DARI BAWAH KE ATAS */
+        .app-header {
+            background: linear-gradient(to top, #ffffff 0%, #198754 85%);
+            color: #ffffff;
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        [data-bs-theme="dark"] .app-header {
+            background: linear-gradient(to top, #212529 0%, #0d5233 85%);
+        }
+        .app-header h4 {
+            color: #ffffff;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-shadow: 0px 1px 3px rgba(0,0,0,0.3);
+            margin: 0;
+        }
+
+        .main-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background: var(--bs-body-bg-2, #ffffff);
+        }
+        [data-bs-theme="dark"] .main-card {
+            background: #1e1e1e;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Nav Pills Modern */
+        .nav-pills-main .nav-link {
+            color: #198754;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            padding: 10px 20px;
+            background-color: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            transition: all 0.2s ease;
+        }
+        [data-bs-theme="dark"] .nav-pills-main .nav-link {
+            background-color: #1b3323;
+            color: #81c784;
+            border-color: #2e5b37;
+        }
+        .nav-pills-main .nav-link.active {
+            background-color: #198754 !important;
+            color: #ffffff !important;
+            border-color: #198754 !important;
+            box-shadow: 0 4px 8px rgba(25, 135, 84, 0.25);
+        }
+
+        .nav-pills-custom .nav-link {
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            padding: 6px 12px;
+        }
+
+        /* Tabel Shift Styles */
+        .table-schedule {
+            font-size: 0.72rem;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .table-schedule th, .table-schedule td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 3px 1px !important;
+            border: 1px solid #6c757d;
+            white-space: nowrap;
+        }
+        .table-schedule thead th {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #000;
+        }
+        [data-bs-theme="dark"] .table-schedule thead th {
+            background-color: #2b3035;
+            color: #fff;
+        }
+        .weekend-header { background-color: #ffe6e6 !important; color: #d9534f; }
+        [data-bs-theme="dark"] .weekend-header { background-color: #4a1c1c !important; color: #ff8080; }
+        .weekend-cell { background-color: #fff0f0; }
+        [data-bs-theme="dark"] .weekend-cell { background-color: #2d1818; }
+
+        .shift-select {
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 2px 0;
+            border-radius: 4px;
+        }
+        .shift-P { background-color: #cff4fc !important; color: #055160 !important; font-weight: bold; }
+        .shift-S { background-color: #fff3cd !important; color: #664d03 !important; font-weight: bold; }
+        .shift-T { background-color: #e2e3e5 !important; color: #141619 !important; font-weight: bold; }
+        .shift-L { background-color: #f8d7da !important; color: #842029 !important; font-weight: bold; }
+        .shift-C { background-color: #e0cffc !important; color: #3d0a91 !important; font-weight: bold; }
+        .shift-Spoli { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
+        
+        .badge-OC { 
+            background-color: #fd7e14 !important; 
+            color: #ffffff !important; 
+            font-size: 0.55rem !important; 
+            padding: 1px 3px !important; 
+            border-radius: 2px; 
+            font-weight: bold; 
+            display: inline-block;
+        }
+        .sub-row-oc { background-color: rgba(0,0,0,0.02); font-size: 0.7rem; color: #6c757d; }
+
+        .preview-kop { 
+            max-height: 40px; 
+            object-fit: contain; 
+            border: 1px dashed #ced4da; 
+            padding: 2px; 
+            border-radius: 4px;
+        }
+        #pdfPreviewCanvasContainer {
+            width: 100%;
+            max-height: 75vh;
+            overflow-y: auto;
+            background-color: #525659;
+            padding: 15px;
+            text-align: center;
+        }
+        #pdfPreviewCanvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            background: #fff;
+            margin: 0 auto;
+        }
+
+        .pdf-export-container {
+            width: 1080px !important;
+            padding: 12px !important;
+            background: #ffffff !important;
+            box-sizing: border-box;
+            color: #000000 !important;
+        }
+        .pdf-export-container table {
+            font-size: 0.62rem !important;
+            width: 100% !important;
+            table-layout: fixed;
+            border-collapse: collapse !important;
+        }
+        .pdf-export-container td, .pdf-export-container th {
+            padding: 2px 0px !important;
+            border: 0.5px solid #333333 !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #000000 !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+        .pdf-export-container th { font-weight: bold; background-color: #f0f0f0 !important; }
+
+        @media (max-width: 767.98px) {
+            .nav-pills-custom {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 4px;
+            }
+            .mobile-card-row {
+                border: 1px solid var(--bs-border-color);
+                border-radius: 10px;
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            .table-desktop { display: none; }
+            .mobile-cards-container { display: block; }
+        }
+        @media (min-width: 768px) {
+            .mobile-cards-container { display: none; }
+            .table-desktop { display: table; }
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff; font-size: 7pt; }
+            @page { size: landscape; margin: 0.3cm; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER UTAMA APLIKASI -->
+<header class="app-header mb-3 no-print d-flex justify-content-between align-items-center">
+    <div class="w-100 text-center position-relative">
+        <h4 class="m-0">MANAJEMEN CUTI DAN JADWAL RSBA</h4>
+        <div class="position-absolute top-50 end-0 translate-middle-y d-flex gap-2 pe-2">
+            <!-- TAHAN TOMBOL BACKUP & TEMA DI HEADER -->
+            <button class="btn btn-sm btn-light text-success fw-bold rounded-circle shadow-sm" onclick="toggleTheme()" id="themeToggleBtn" title="Ganti Tema Dark/Light">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-light text-success fw-bold rounded-circle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Backup & Restore JSON">
+                    <i class="fa-solid fa-database"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-link dropdown-item small fw-semibold" href="#" onclick="exportSystemJSON()"><i class="fa-solid fa-download me-2 text-primary"></i>Export Backup JSON</a></li>
+                    <li><a class="dropdown-link dropdown-item small fw-semibold" href="#" onclick="triggerImportJSON()"><i class="fa-solid fa-upload me-2 text-warning"></i>Import Restore JSON</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- INPUT FILE TERSEMBUNYI UNTUK IMPORT JSON -->
+<input type="file" id="inputJsonFile" accept=".json" style="display: none;" onchange="importSystemJSON(event)">
+
+<div class="container-fluid px-3 mb-5">
+    
+    <!-- NAVIGASI MODUL UTAMA -->
+    <div class="d-flex justify-content-center mb-4 no-print">
+        <ul class="nav nav-pills nav-pills-main gap-3" id="appMainModuleTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="btn-module-cuti" onclick="switchModule('module-cuti', 'btn-module-cuti')">
+                    <i class="fa-solid fa-file-signature me-2"></i> Pengajuan Cuti
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="btn-module-jadwal" onclick="switchModule('module-jadwal', 'btn-module-jadwal')">
+                    <i class="fa-solid fa-calendar-days me-2"></i> Jadwal Shift
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- MODUL 1: PENGAJUAN CUTI                                             -->
+    <!-- =================================================================== -->
+    <div id="module-cuti" class="module-pane">
+        
+        <div class="mb-3 no-print">
+            <ul class="nav nav-pills nav-pills-custom gap-2" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="btn-tab-form" onclick="switchCutiSubTab('form-pane', 'btn-tab-form')">Form Cuti</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="btn-tab-history" onclick="switchCutiSubTab('history-pane', 'btn-tab-history')">Riwayat Surat</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="btn-tab-master" onclick="switchCutiSubTab('master-pane', 'btn-tab-master')">Master & Kop</button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="main-card p-3 p-md-4">
+            
+            <!-- TAB 1: FORM CUTI -->
+            <div class="cuti-tab-pane active" id="form-pane">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Informasi Surat Cuti</h6>
+                
+                <div class="row g-2 mb-3">
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-semibold small">Tanggal Surat</label>
+                        <input type="date" class="form-control form-control-sm" id="suratTanggal" onchange="generateNoSuratOtomatis()">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-semibold small">Kode Unit</label>
+                        <input type="text" class="form-control form-control-sm" id="suratKodeUnit" value="KEU/RSBA" onchange="generateNoSuratOtomatis()">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="form-label fw-semibold small mb-1">Nomor Surat</label>
+                            <button type="button" class="btn btn-link p-0 border-0 text-danger fw-bold" style="font-size: 0.7rem; text-decoration: none;" onclick="resetNomorSurat()">[Reset No]</button>
+                        </div>
+                        <input type="text" class="form-control form-control-sm bg-body-tertiary" id="suratNomor" readonly>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-semibold small">Ruangan / Unit</label>
+                        <input type="text" class="form-control form-control-sm" id="suratRuangan" value="ADMINISTRASI">
+                    </div>
+                    <div class="col-12 col-md-3 mt-md-2">
+                        <label class="form-label fw-semibold small">Bulan & Tahun Cuti</label>
+                        <input type="text" class="form-control form-control-sm" id="suratBulan" value="MARET 2026" placeholder="MARET 2026">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 mt-4 border-bottom pb-2">
+                    <h6 class="fw-bold mb-0">Daftar Pemohon Cuti</h6>
+                    <button type="button" class="btn btn-primary btn-sm rounded-pill" onclick="addFormRow()">+ Tambah Pemohon</button>
+                </div>
+
+                <div class="table-responsive table-desktop mb-3">
+                    <table class="table table-bordered align-middle small mb-0">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th style="width: 20%;">Nama Karyawan</th>
+                                <th style="width: 13%;">Tgl Mulai</th>
+                                <th style="width: 13%;">Tgl Selesai</th>
+                                <th style="width: 10%;">Hari / Abaikan Minggu</th>
+                                <th style="width: 10%;">Cuti Ke</th>
+                                <th style="width: 6%;">Sisa</th>
+                                <th style="width: 12%;">Jenis Cuti</th>
+                                <th>Alasan Cuti</th>
+                                <th style="width: 40px;" class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyCutiDesktop"></tbody>
+                    </table>
+                </div>
+
+                <div class="mobile-cards-container" id="mobileCardsContainer"></div>
+
+                <div class="row g-2 mt-4">
+                    <div class="col-12 col-md-6">
+                        <button type="button" class="btn btn-outline-primary btn-lg fw-bold w-100" onclick="pratinjauPDF()">Pratinjau (Preview PDF)</button>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <button type="button" class="btn btn-success btn-lg fw-bold w-100" id="btnCetak" onclick="prosesDanCetakPDF()">Cetak & Download PDF</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: RIWAYAT CUTI -->
+            <div class="cuti-tab-pane d-none" id="history-pane">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Arsip Surat Cuti</h6>
+                <div class="row g-2 mb-3 bg-body-tertiary p-2 rounded border">
+                    <div class="col-12 col-md-6">
+                        <input type="text" class="form-control form-control-sm" id="historySearchInput" placeholder="Cari nama, nomor surat, unit..." onkeyup="renderHistoryUI()">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <select class="form-select form-select-sm" id="historyFilterBulan" onchange="renderHistoryUI()">
+                            <option value="">-- Semua Bulan & Tahun --</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilterHistory()">Reset Filter</button>
+                    </div>
+                </div>
+                <div id="historyContainer"></div>
+            </div>
+
+            <!-- TAB 3: MASTER CUTI -->
+            <div class="cuti-tab-pane d-none" id="master-pane">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="card bg-body-tertiary border-0">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary mb-2">1. Pengaturan Kop Surat PDF/Gambar</h6>
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small fw-semibold">Unggah File Kop PDF</label>
+                                        <input type="file" class="form-control form-control-sm mb-1" id="inputKopPdf" accept="application/pdf">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small fw-semibold">Unggah Gambar Kop (PNG/JPG)</label>
+                                        <input type="file" class="form-control form-control-sm mb-1" id="inputKopImg" accept="image/png, image/jpeg, image/jpg">
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="small fw-semibold">Status Kop:</span>
+                                    <span id="kopStatusText" class="badge bg-secondary">Tanpa Kop</span>
+                                    <button type="button" class="btn btn-outline-danger btn-sm p-1 py-0 d-none" id="btnResetKop" onclick="resetKop()" style="font-size: 0.75rem;">Hapus Kop</button>
+                                    <img id="previewKopImg" class="preview-kop d-none ms-auto" alt="Preview Kop">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <div class="card border h-100">
+                            <div class="card-header bg-body-tertiary fw-bold small">2. Pejabat & Tanda Tangan</div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <label class="form-label small">Nama Yang Mengajukan</label>
+                                    <input type="text" class="form-control form-control-sm" id="mHrdNama" value="Sasono Wahyu N.">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Jabatan Menyetujui</label>
+                                    <input type="text" class="form-control form-control-sm" id="mJabatanMenyetujui" value="Direktur RS. Bhakti Asih Brebes">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Nama Menyetujui</label>
+                                    <input type="text" class="form-control form-control-sm" id="mNamaMenyetujui" value="dr. Gita Ika Irsatika, M.M">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">NRP Menyetujui</label>
+                                    <input type="text" class="form-control form-control-sm" id="mNrpMenyetujui" value="19911210 2025 021">
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm w-100 mt-2" onclick="saveMasterTtd()">Simpan TTD</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <div class="card border h-100">
+                            <div class="card-header bg-body-tertiary fw-bold small d-flex justify-content-between align-items-center">
+                                <span>3. Penomoran Surat</span>
+                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="resetNomorSurat()">Reset No. Surat</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <label class="form-label small">Nomor Urut Download Saat Ini</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" class="form-control" id="mCounterSurat" value="1">
+                                        <button class="btn btn-outline-primary" type="button" onclick="simpanCounterSurat()">Set Nomor</button>
+                                    </div>
+                                    <div class="form-text" style="font-size: 0.7rem;">Ubah angka urutan cetak surat secara manual jika diperlukan.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <div class="card border h-100">
+                            <div class="card-header bg-body-tertiary fw-bold small">4. Master Jenis Cuti</div>
+                            <div class="card-body">
+                                <div class="row g-1 mb-2">
+                                    <div class="col-8">
+                                        <input type="text" class="form-control form-control-sm" id="inputJenisCuti" placeholder="Jenis Cuti Baru" autocomplete="off">
+                                    </div>
+                                    <div class="col-4">
+                                        <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" onclick="addJenisCuti()">Tambah</button>
+                                    </div>
+                                </div>
+                                <div style="max-height: 180px; overflow-y: auto;">
+                                    <ul class="list-group list-group-flush small" id="listJenisCuti"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <div class="card border h-100">
+                            <div class="card-header bg-body-tertiary fw-bold small d-flex justify-content-between align-items-center">
+                                <span>5. Master Karyawan</span>
+                                <button type="button" class="btn btn-sm btn-outline-success p-0 px-1" style="font-size:0.75rem" onclick="tambahKaryawanViaPrompt()">+ Input Modal</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-1 mb-2">
+                                    <div class="col-6">
+                                        <input type="text" class="form-control form-control-sm" id="inputNamaKaryawan" placeholder="Nama" autocomplete="off">
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" class="form-control form-control-sm" id="inputHakCuti" placeholder="Sisa" value="12">
+                                    </div>
+                                    <div class="col-3">
+                                        <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" onclick="eksekusiTambahKaryawanDirect()">Tambah</button>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <button type="button" class="btn btn-warning btn-sm w-100 text-dark fw-bold" style="font-size: 0.75rem;" onclick="resetHakCutiMassalPrompt()">↻ Reset Hak Cuti Massal</button>
+                                </div>
+                                <div style="max-height: 150px; overflow-y: auto;">
+                                    <table class="table table-sm table-bordered small mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Nama</th>
+                                                <th style="width: 50px;">Hak</th>
+                                                <th style="width: 30px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyMasterKaryawan"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <div class="card border-danger bg-danger-subtle">
+                            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <h6 class="fw-bold text-danger mb-0">Reset Seluruh Data Aplikasi Cuti</h6>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Menghapus seluruh riwayat, master data, dan mengembalikan modul cuti ke kondisi awal.</small>
+                                </div>
+                                <button type="button" class="btn btn-danger btn-sm fw-bold px-3" onclick="resetSeluruhDataAplikasi()">Reset Seluruh Data</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- MODUL 2: MANAJEMEN JADWAL SHIFT                                    -->
+    <!-- =================================================================== -->
+    <div id="module-jadwal" class="module-pane d-none">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print flex-wrap gap-2">
+            <h6 class="fw-bold text-primary mb-0"><i class="fa-solid fa-calendar-days me-1"></i> Matriks Jadwal Shift & On-Call</h6>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-warning btn-sm fw-semibold text-dark" onclick="generateAutoSchedule()">
+                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Auto Generate
+                </button>
+                <button class="btn btn-info btn-sm fw-semibold text-white" onclick="openPreviewModal()">
+                    <i class="fa-solid fa-eye me-1"></i> Preview PDF
+                </button>
+                <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="downloadDirectPDF()">
+                    <i class="fa-solid fa-file-pdf me-1"></i> Cetak PDF
+                </button>
+                <button class="btn btn-success btn-sm fw-semibold" onclick="exportToExcelXLSX()">
+                    <i class="fa-solid fa-file-excel me-1"></i> Export Excel
+                </button>
+            </div>
+        </div>
+
+        <div class="mb-3 no-print">
+            <ul class="nav nav-pills nav-pills-custom gap-2" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="tab-jadwal-btn" onclick="switchJadwalSubTab('tab-jadwal', 'tab-jadwal-btn')">Jadwal Shift Bulanan</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-master-jadwal-btn" onclick="switchJadwalSubTab('tab-master-jadwal', 'tab-master-jadwal-btn')">Kelola Karyawan & Unit</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-notes-btn" onclick="switchJadwalSubTab('tab-notes', 'tab-notes-btn')">Hari Libur & Catatan</button>
+                </li>
+            </ul>
+        </div>
+
+        <div id="tab-jadwal" class="jadwal-tab-pane">
+            <div class="main-card p-3 mb-3 no-print">
+                <div class="row g-2 align-items-center">
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">Bulan</label>
+                        <select class="form-select form-select-sm" id="selectBulan" onchange="onPeriodChange()">
+                            <option value="1">Januari</option>
+                            <option value="2">Februari</option>
+                            <option value="3">Maret</option>
+                            <option value="4">April</option>
+                            <option value="5">Mei</option>
+                            <option value="6">Juni</option>
+                            <option value="7">Juli</option>
+                            <option value="8">Agustus</option>
+                            <option value="9">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11" selected>November</option>
+                            <option value="12">Desember</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">Tahun</label>
+                        <input type="number" class="form-control form-control-sm" id="selectTahun" value="2026" onchange="onPeriodChange()">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold small mb-1">Judul Dokumen Jadwal</label>
+                        <input type="text" class="form-control form-control-sm" id="inputJudulJadwal" value="JADWAL KASIR NOVEMBER 2026" oninput="saveScheduleData()">
+                    </div>
+                    <div class="col-12 col-md-4 text-md-end mt-md-4">
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="fetchNationalHolidaysAuto(true)">
+                            <i class="fa-solid fa-sync me-1"></i> Sync Libur
+                        </button>
+                        <span class="badge shift-P p-2 me-1">P</span>
+                        <span class="badge shift-S p-2 me-1">S</span>
+                        <span class="badge shift-T p-2 me-1">T</span>
+                        <span class="badge shift-L p-2 me-1">L</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mb-3" id="printAreaHeader">
+                <h5 class="fw-bold text-uppercase mb-1" id="printJudulJadwal">JADWAL KASIR NOVEMBER 2026</h5>
+                <small class="text-muted d-block fw-semibold">RS. BHAKTI ASIH BREBES</small>
+            </div>
+
+            <div class="main-card p-2 mb-4" id="printAreaMatrix">
+                <div class="table-responsive">
+                    <table class="table-schedule" id="scheduleMatrixTable">
+                        <thead>
+                            <tr id="headerDaysRow"></tr>
+                            <tr id="headerDatesRow"></tr>
+                        </thead>
+                        <tbody id="scheduleTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row g-3" id="printAreaFooter">
+                <div class="col-12 col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-body-tertiary fw-bold small border-bottom text-primary d-flex justify-content-between align-items-center">
+                            <span><i class="fa-solid fa-umbrella-beach me-1"></i> Hari Libur Nasional Kalender</span>
+                            <span id="holidayLoadingBadge" class="badge bg-secondary d-none" style="font-size: 0.65rem;">Memuat...</span>
+                        </div>
+                        <div class="card-body p-2">
+                            <ul class="list-group list-group-flush small" id="displayHolidaysList"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-body-tertiary fw-bold small border-bottom text-primary">
+                            <i class="fa-solid fa-clipboard-list me-1"></i> Catatan Khusus
+                        </div>
+                        <div class="card-body p-2">
+                            <div id="displayNotesContent" class="small text-muted p-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-master-jadwal" class="jadwal-tab-pane d-none">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-primary mb-3">Tambah Karyawan Baru</h6>
+                        <div class="mb-2">
+                            <label class="form-label small mb-1">Nama Karyawan</label>
+                            <input type="text" class="form-control form-control-sm" id="masterNama" placeholder="Contoh: DUL MUID">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small mb-1">Unit / Jabatan</label>
+                            <select class="form-select form-select-sm" id="masterUnit">
+                                <option value="Kasir RI">Kasir RI</option>
+                                <option value="Kasir Poli">Kasir Poli</option>
+                                <option value="POLIKLINIK">POLIKLINIK</option>
+                                <option value="LOGISTIK">LOGISTIK</option>
+                                <option value="KEU">KEU</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm w-100 mt-2 fw-bold" onclick="tambahKaryawanMaster()">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Karyawan
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-md-8">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-primary mb-3">Daftar Karyawan Terdaftar</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Nama Karyawan</th>
+                                        <th>Unit / Jabatan</th>
+                                        <th class="text-end">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="masterKaryawanTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-notes" class="jadwal-tab-pane d-none">
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-primary mb-3">Kelola Hari Libur Manual / Tambahan</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <input type="number" class="form-control form-control-sm" id="inputTglLibur" placeholder="Tgl (1-31)">
+                            </div>
+                            <div class="col-6">
+                                <input type="text" class="form-control form-control-sm" id="inputKetLibur" placeholder="Keterangan Libur">
+                            </div>
+                            <div class="col-2">
+                                <button class="btn btn-primary btn-sm w-100 fw-bold" onclick="tambahHariLibur()">+</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 20%;">Tanggal</th>
+                                        <th>Keterangan</th>
+                                        <th style="width: 15%;" class="text-end">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyHariLiburMaster"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <div class="main-card p-3">
+                        <h6 class="fw-bold text-primary mb-3">Kelola Catatan Khusus</h6>
+                        <textarea class="form-control form-control-sm mb-3" id="inputCatatanKhusus" rows="6" placeholder="Ketik catatan khusus jadwal di sini..."></textarea>
+                        <button class="btn btn-primary btn-sm fw-bold px-4" onclick="simpanCatatanKhusus()">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Catatan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- MODAL PRATINJAU CUTI PDF -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-bold">Pratinjau Dokumen Cuti</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="pdfPreviewCanvasContainer">
+                    <canvas id="pdfPreviewCanvas"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-success btn-sm fw-bold" onclick="downloadFromPreview()">Download & Sahkan Cuti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PREVIEW JADWAL PDF -->
+<div class="modal fade no-print" id="previewPdfModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title fw-bold">
+                    <i class="fa-solid fa-file-pdf me-2"></i> Pratinjau Dokumen Jadwal (PDF Preview)
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <div class="alert alert-info py-2 small d-flex align-items-center mb-3">
+                    <i class="fa-solid fa-circle-info me-2 fs-5"></i>
+                    <div>Periksa seluruh isi matriks jadwal dan rekapitulasi jumlah shift sebelum mengunduh dokumen.</div>
+                </div>
+                <div class="preview-page-container rounded" id="pdfPreviewContent"></div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal / Edit</button>
+                <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="downloadJadwalFromPreview()">
+                    <i class="fa-solid fa-download me-1"></i> Unduh PDF Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(reg => {
+                console.log('ServiceWorker registered:', reg.scope);
+            }).catch(err => {
+                console.log('ServiceWorker registration failed:', err);
+            });
+        });
+    }
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    /* =====================================================================
+       FITUR BARU 1: TEMA DARK / LIGHT MODE
+       ===================================================================== */
+    function initTheme() {
+        const savedTheme = localStorage.getItem("app_theme") || "light";
+        document.documentElement.setAttribute("data-bs-theme", savedTheme);
+        updateThemeIcon(savedTheme);
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute("data-bs-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-bs-theme", newTheme);
+        localStorage.setItem("app_theme", newTheme);
+        updateThemeIcon(newTheme);
+    }
+
+    function updateThemeIcon(theme) {
+        const btn = document.getElementById("themeToggleBtn");
+        if (!btn) return;
+        if (theme === "dark") {
+            btn.innerHTML = `<i class="fa-solid fa-sun text-warning"></i>`;
+        } else {
+            btn.innerHTML = `<i class="fa-solid fa-moon text-success"></i>`;
+        }
+    }
+
+    /* =====================================================================
+       FITUR BARU 2: BACKUP & RESTORE DATA JSON
+       ===================================================================== */
+    function exportSystemJSON() {
+        const backupData = {
+            appName: "MANAJEMEN_CUTI_DAN_JADWAL_RSBA",
+            version: "1.0",
+            exportDate: new Date().toISOString(),
+            cutiData: cutiMasterData,
+            jadwalData: appState
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const downloadAnchor = document.createElement('a');
+        const fileName = `Backup_RSBA_${new Date().toISOString().substring(0, 10)}.json`;
+        
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", fileName);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function triggerImportJSON() {
+        document.getElementById("inputJsonFile").click();
+    }
+
+    function importSystemJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                if (!parsed.cutiData || !parsed.jadwalData) {
+                    alert("Format JSON tidak valid atau bukan berasal dari aplikasi ini!");
+                    return;
+                }
+
+                if (confirm("Import file backup ini? Seluruh data yang ada saat ini akan ditimpa dengan data backup.")) {
+                    cutiMasterData = parsed.cutiData;
+                    appState = parsed.jadwalData;
+
+                    saveCutiMasterData();
+                    saveScheduleData();
+
+                    renderMasterUI();
+                    renderHistoryUI();
+                    updateKopStatusUI();
+                    renderFormRowsUI();
+
+                    loadJadwalDataFromStorage();
+                    renderAllJadwalUI();
+
+                    alert("Data berhasil dipulihkan dari file JSON!");
+                }
+            } catch (err) {
+                alert("Gagal membaca file JSON: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = "";
+    }
+
+    // NAVIGASI MODUL UTAMA & SUBTAB
+    function switchModule(moduleId, btnId) {
+        document.querySelectorAll('.module-pane').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('.nav-pills-main .nav-link').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(moduleId).classList.remove('d-none');
+        document.getElementById(btnId).classList.add('active');
+    }
+
+    function switchCutiSubTab(paneId, btnId) {
+        document.querySelectorAll('.cuti-tab-pane').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('#module-cuti .nav-pills-custom .nav-link').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(paneId).classList.remove('d-none');
+        document.getElementById(btnId).classList.add('active');
+    }
+
+    function switchJadwalSubTab(paneId, btnId) {
+        document.querySelectorAll('.jadwal-tab-pane').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('#module-jadwal .nav-pills-custom .nav-link').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(paneId).classList.remove('d-none');
+        document.getElementById(btnId).classList.add('active');
+    }
+
+    /* =====================================================================
+       LOGIKA MODUL 1: PENGAJUAN CUTI
+       ===================================================================== */
+    const CUTI_STORAGE_KEY = "app_cuti_rsba_v35_poin_2_3_5_fix";
+    const DEFAULT_ALASAN = "KEPERLUAN KELUARGA";
+
+    const defaultCutiMasterData = {
+        counterSurat: 1,
+        historySurat: [],
+        jenisCuti: ["TAHUNAN", "MELAHIRKAN", "HAJI", "UMROH", "HAJATAN"],
+        karyawan: [],
+        ttd: {
+            hrdNama: "Sasono Wahyu N.",
+            jabatanMenyetujui: "Direktur RS. Bhakti Asih Brebes",
+            namaMenyetujui: "dr. Gita Ika Irsatika, M.M",
+            nrpMenyetujui: "19911210 2025 021"
+        },
+        renderedKopImageBase64: null
+    };
+
+    let cutiMasterData = JSON.parse(JSON.stringify(defaultCutiMasterData));
+    let formDataRows = [];
+
+    function loadCutiMasterData() {
+        const saved = localStorage.getItem(CUTI_STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                cutiMasterData.jenisCuti = Array.isArray(parsed.jenisCuti) && parsed.jenisCuti.length > 0 ? parsed.jenisCuti : defaultCutiMasterData.jenisCuti;
+                cutiMasterData.karyawan = Array.isArray(parsed.karyawan) ? parsed.karyawan : [];
+                cutiMasterData.ttd = parsed.ttd || defaultCutiMasterData.ttd;
+                cutiMasterData.counterSurat = parsed.counterSurat || 1;
+                cutiMasterData.historySurat = parsed.historySurat || [];
+                cutiMasterData.renderedKopImageBase64 = parsed.renderedKopImageBase64 || null;
+            } catch(e) {
+                cutiMasterData = JSON.parse(JSON.stringify(defaultCutiMasterData));
+            }
+        } else {
+            saveCutiMasterData();
+        }
+    }
+
+    function saveCutiMasterData() {
+        try {
+            localStorage.setItem(CUTI_STORAGE_KEY, JSON.stringify(cutiMasterData));
+        } catch (e) {
+            alert("Gagal menyimpan ke penyimpanan internal browser: " + e.message);
+        }
+    }
+
+    function resetSeluruhDataAplikasi() {
+        if (confirm("PERINGATAN: Seluruh riwayat pengajuan cuti, master karyawan cuti, dan pengaturan surat akan DIHAPUS. Lanjutkan?")) {
+            localStorage.removeItem(CUTI_STORAGE_KEY);
+            cutiMasterData = JSON.parse(JSON.stringify(defaultCutiMasterData));
+            saveCutiMasterData();
+            
+            formDataRows = [];
+            renderMasterUI();
+            renderHistoryUI();
+            updateKopStatusUI();
+            generateNoSuratOtomatis();
+            addFormRow();
+            
+            alert("Seluruh data modul cuti berhasil di-reset!");
+        }
+    }
+
+    function resetHakCutiMassalPrompt() {
+        if (cutiMasterData.karyawan.length === 0) {
+            alert("Master karyawan cuti masih kosong.");
+            return;
+        }
+
+        const val = prompt("Masukkan jumlah hak cuti baru untuk SELURUH karyawan (misal: 12):", "12");
+        if (val === null) return;
+        
+        const num = parseInt(val, 10);
+        if (isNaN(num)) {
+            alert("Harap masukkan angka yang valid!");
+            return;
+        }
+
+        if (confirm(`Reset hak cuti SELURUH karyawan (${cutiMasterData.karyawan.length} orang) menjadi ${num} hari?`)) {
+            cutiMasterData.karyawan.forEach(k => {
+                k.hakCuti = num;
+                k.historiCutiTaken = 0;
+            });
+            saveCutiMasterData();
+            renderMasterUI();
+            for (var j = 0; j < formDataRows.length; j++) {
+                updateRowLogic(formDataRows[j]);
+            }
+            renderFormRowsUI();
+            alert(`Hak cuti seluruh karyawan berhasil di-reset menjadi ${num} hari!`);
+        }
+    }
+
+    function generateNoSuratOtomatis() {
+        const tglStr = document.getElementById("suratTanggal").value;
+        const kodeUnit = document.getElementById("suratKodeUnit").value || "KEU/RSBA";
+        const dateObj = tglStr ? new Date(tglStr) : new Date();
+        const bulanRomawi = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][dateObj.getMonth()];
+        const tahun = dateObj.getFullYear();
+        const noFormatted = String(cutiMasterData.counterSurat).padStart(3, '0');
+        
+        document.getElementById("suratNomor").value = `${noFormatted}/${kodeUnit}/${bulanRomawi}/${tahun}`;
+        document.getElementById("mCounterSurat").value = cutiMasterData.counterSurat;
+    }
+
+    function resetNomorSurat() {
+        if (confirm("Reset nomor urut surat kembali ke 001?")) {
+            cutiMasterData.counterSurat = 1;
+            saveCutiMasterData();
+            generateNoSuratOtomatis();
+            alert("Nomor urut surat di-reset ke 001!");
+        }
+    }
+
+    function simpanCounterSurat() {
+        const val = parseInt(document.getElementById("mCounterSurat").value) || 1;
+        cutiMasterData.counterSurat = val;
+        saveCutiMasterData();
+        generateNoSuratOtomatis();
+        alert("Nomor urut surat berhasil diperbarui!");
+    }
+
+    function renderMasterUI() {
+        document.getElementById("mHrdNama").value = cutiMasterData.ttd.hrdNama;
+        document.getElementById("mJabatanMenyetujui").value = cutiMasterData.ttd.jabatanMenyetujui;
+        document.getElementById("mNamaMenyetujui").value = cutiMasterData.ttd.namaMenyetujui;
+        document.getElementById("mNrpMenyetujui").value = cutiMasterData.ttd.nrpMenyetujui;
+
+        const listJ = document.getElementById("listJenisCuti");
+        listJ.innerHTML = "";
+        if (!cutiMasterData.jenisCuti || cutiMasterData.jenisCuti.length === 0) {
+            listJ.innerHTML = `<li class="list-group-item text-muted text-center py-2">Belum ada jenis cuti.</li>`;
+        } else {
+            cutiMasterData.jenisCuti.forEach((j, idx) => {
+                listJ.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+                    <span>${j}</span>
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0 fw-bold" onclick="deleteJenisCuti(${idx})">✕</button>
+                </li>`;
+            });
+        }
+
+        const tbodyK = document.getElementById("tbodyMasterKaryawan");
+        tbodyK.innerHTML = "";
+        if (!cutiMasterData.karyawan || cutiMasterData.karyawan.length === 0) {
+            tbodyK.innerHTML = `<tr><td colspan="3" class="text-center text-muted">Master karyawan kosong.</td></tr>`;
+        } else {
+            cutiMasterData.karyawan.forEach((k, idx) => {
+                tbodyK.innerHTML += `<tr>
+                    <td>${k.nama}</td>
+                    <td>${k.hakCuti} Hr</td>
+                    <td><button type="button" class="btn btn-sm btn-link text-danger p-0 fw-bold" onclick="deleteKaryawan(${idx})">✕</button></td>
+                </tr>`;
+            });
+        }
+    }
+
+    function renderHistoryUI() {
+        const container = document.getElementById("historyContainer");
+        const searchText = (document.getElementById("historySearchInput")?.value || "").toLowerCase().trim();
+        const filterBulan = document.getElementById("historyFilterBulan")?.value || "";
+
+        const selectFilter = document.getElementById("historyFilterBulan");
+        if (selectFilter) {
+            const currentSelected = selectFilter.value;
+            const bulanSet = new Set();
+            cutiMasterData.historySurat.forEach(h => {
+                if(h.bulanTahun) bulanSet.add(h.bulanTahun);
+            });
+            
+            selectFilter.innerHTML = `<option value="">-- Semua Bulan & Tahun --</option>`;
+            bulanSet.forEach(b => {
+                selectFilter.innerHTML += `<option value="${b}" ${b === currentSelected ? 'selected':''}>${b}</option>`;
+            });
+        }
+
+        container.innerHTML = "";
+
+        if (cutiMasterData.historySurat.length === 0) {
+            container.innerHTML = `<div class="text-center text-muted py-4 small">Belum ada riwayat pengajuan.</div>`;
+            return;
+        }
+
+        const filteredList = cutiMasterData.historySurat.filter(h => {
+            const matchSearch = h.noSurat.toLowerCase().includes(searchText) ||
+                                h.ruangan.toLowerCase().includes(searchText) ||
+                                h.daftarNama.some(n => n.toLowerCase().includes(searchText));
+            
+            const matchBulan = filterBulan === "" || h.bulanTahun === filterBulan;
+            return matchSearch && matchBulan;
+        });
+
+        if (filteredList.length === 0) {
+            container.innerHTML = `<div class="text-center text-muted py-4 small">Tidak ada riwayat yang cocok.</div>`;
+            return;
+        }
+
+        filteredList.forEach((h, idx) => {
+            const realIdx = cutiMasterData.historySurat.findIndex(item => item.noSurat === h.noSurat);
+            container.innerHTML += `
+            <div class="card border-0 bg-body-tertiary mb-2">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="fw-bold text-primary d-block">${h.noSurat}</span>
+                            <small class="text-muted d-block" style="font-size:0.75rem;">${h.tglCetak} | Unit: ${h.ruangan} | Periode: ${h.bulanTahun}</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="cetakUlangHistory(${realIdx})">Cetak</button>
+                            <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="hapusHistory(${realIdx})">Hapus</button>
+                        </div>
+                    </div>
+                    <div class="small">
+                        <strong>Pemohon:</strong> ${h.daftarNama.join(", ")}
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    function resetFilterHistory() {
+        if (document.getElementById("historySearchInput")) document.getElementById("historySearchInput").value = "";
+        if (document.getElementById("historyFilterBulan")) document.getElementById("historyFilterBulan").value = "";
+        renderHistoryUI();
+    }
+
+    function hapusHistory(idx) {
+        if(confirm("Apakah Anda yakin ingin menghapus arsip riwayat ini?")) {
+            cutiMasterData.historySurat.splice(idx, 1);
+            saveCutiMasterData();
+            renderHistoryUI();
+        }
+    }
+
+    function updateKopStatusUI() {
+        const badge = document.getElementById("kopStatusText");
+        const img = document.getElementById("previewKopImg");
+        const btnReset = document.getElementById("btnResetKop");
+
+        if (cutiMasterData.renderedKopImageBase64) {
+            badge.className = "badge bg-success";
+            badge.innerText = "Kop Terpasang";
+            img.src = cutiMasterData.renderedKopImageBase64;
+            img.classList.remove("d-none");
+            btnReset.classList.remove("d-none");
+        } else {
+            badge.className = "badge bg-secondary";
+            badge.innerText = "Tanpa Kop";
+            img.classList.add("d-none");
+            btnReset.classList.add("d-none");
+        }
+    }
+
+    function resetKop() {
+        cutiMasterData.renderedKopImageBase64 = null;
+        document.getElementById("inputKopImg").value = "";
+        document.getElementById("inputKopPdf").value = "";
+        saveCutiMasterData();
+        updateKopStatusUI();
+    }
+
+    document.getElementById("inputKopPdf").addEventListener("change", async function(e) {
+        const file = e.target.files[0];
+        if (file && file.type === "application/pdf") {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const page = await pdf.getPage(1);
+            
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+            cutiMasterData.renderedKopImageBase64 = canvas.toDataURL("image/png");
+            saveCutiMasterData();
+            updateKopStatusUI();
+        }
+    });
+
+    document.getElementById("inputKopImg").addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                cutiMasterData.renderedKopImageBase64 = evt.target.result;
+                saveCutiMasterData();
+                updateKopStatusUI();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function saveMasterTtd() {
+        cutiMasterData.ttd.hrdNama = document.getElementById("mHrdNama").value;
+        cutiMasterData.ttd.jabatanMenyetujui = document.getElementById("mJabatanMenyetujui").value;
+        cutiMasterData.ttd.namaMenyetujui = document.getElementById("mNamaMenyetujui").value;
+        cutiMasterData.ttd.nrpMenyetujui = document.getElementById("mNrpMenyetujui").value;
+        saveCutiMasterData();
+        alert("Pengaturan TTD disimpan.");
+    }
+
+    function addJenisCuti() {
+        const inputElem = document.getElementById("inputJenisCuti");
+        const val = inputElem.value.trim().toUpperCase();
+
+        if (!val) {
+            alert("Harap masukkan nama jenis cuti!");
+            inputElem.focus();
+            return;
+        }
+
+        if (cutiMasterData.jenisCuti.includes(val)) {
+            alert("Jenis cuti '" + val + "' sudah ada!");
+            return;
+        }
+
+        cutiMasterData.jenisCuti.push(val);
+        inputElem.value = "";
+        
+        saveCutiMasterData();
+        renderMasterUI();
+        renderFormRowsUI();
+    }
+
+    function deleteJenisCuti(idx) {
+        if (confirm("Hapus jenis cuti ini?")) {
+            cutiMasterData.jenisCuti.splice(idx, 1);
+            saveCutiMasterData();
+            renderMasterUI();
+            renderFormRowsUI();
+        }
+    }
+
+    function eksekusiTambahKaryawanDirect() {
+        var inputNama = document.getElementById("inputNamaKaryawan");
+        var inputHak = document.getElementById("inputHakCuti");
+
+        if (!inputNama || !inputHak) return;
+
+        var namaStr = inputNama.value.replace(/^\s+|\s+$/g, '').toUpperCase();
+        var hakNum = parseInt(inputHak.value, 10);
+        if (isNaN(hakNum)) hakNum = 12;
+
+        if (namaStr === "") {
+            alert("Ketik nama karyawan terlebih dahulu!");
+            return;
+        }
+
+        for (var i = 0; i < cutiMasterData.karyawan.length; i++) {
+            if (cutiMasterData.karyawan[i].nama === namaStr) {
+                alert("Nama '" + namaStr + "' sudah ada!");
+                return;
+            }
+        }
+
+        cutiMasterData.karyawan.push({
+            nama: namaStr,
+            hakCuti: hakNum,
+            historiCutiTaken: 0
+        });
+
+        saveCutiMasterData();
+        inputNama.value = "";
+        inputHak.value = "12";
+        renderMasterUI();
+
+        for (var j = 0; j < formDataRows.length; j++) {
+            updateRowLogic(formDataRows[j]);
+        }
+        renderFormRowsUI();
+
+        alert("Sukses menambah " + namaStr + " dengan " + hakNum + " hari cuti!");
+    }
+
+    function tambahKaryawanViaPrompt() {
+        var nama = prompt("Masukkan Nama Karyawan Baru:");
+        if (!nama || nama.trim() === "") return;
+        
+        var hak = prompt("Masukkan Jumlah Hak Cuti (Hari):", "12");
+        var hakNum = parseInt(hak, 10);
+        if (isNaN(hakNum)) hakNum = 12;
+
+        var namaFormatted = nama.trim().toUpperCase();
+
+        cutiMasterData.karyawan.push({
+            nama: namaFormatted,
+            hakCuti: hakNum,
+            historiCutiTaken: 0
+        });
+
+        saveCutiMasterData();
+        renderMasterUI();
+
+        for (var j = 0; j < formDataRows.length; j++) {
+            updateRowLogic(formDataRows[j]);
+        }
+        renderFormRowsUI();
+
+        alert("Karyawan " + namaFormatted + " berhasil ditambahkan!");
+    }
+
+    function deleteKaryawan(idx) {
+        if(confirm("Hapus karyawan ini dari Master Cuti?")) {
+            cutiMasterData.karyawan.splice(idx, 1);
+            saveCutiMasterData();
+            renderMasterUI();
+            
+            for (var j = 0; j < formDataRows.length; j++) {
+                updateRowLogic(formDataRows[j]);
+            }
+            renderFormRowsUI();
+        }
+    }
+
+    function addFormRow(nama="", tglMulai="", tglSelesai="", jenis="", alasan="", abaikanMinggu=true) {
+        const rowId = 'row_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+        const defaultJenis = (cutiMasterData.jenisCuti && cutiMasterData.jenisCuti.length > 0) ? cutiMasterData.jenisCuti[0] : "TAHUNAN";
+
+        const rowObj = {
+            id: rowId,
+            nama: nama,
+            tglMulai: tglMulai || new Date().toISOString().substring(0, 10),
+            tglSelesai: tglSelesai || new Date().toISOString().substring(0, 10),
+            durasi: 1,
+            cutiKe: "KE 1",
+            sisaCuti: 0,
+            jenisCuti: jenis || defaultJenis,
+            alasan: alasan,
+            abaikanMinggu: abaikanMinggu
+        };
+
+        formDataRows.unshift(rowObj);
+        updateRowLogic(rowObj);
+        renderFormRowsUI();
+    }
+
+    function removeFormRow(rowId) {
+        formDataRows = formDataRows.filter(r => r.id !== rowId);
+        renderFormRowsUI();
+    }
+
+    function updateRowLogic(row) {
+        if (row.tglMulai && row.tglSelesai) {
+            const d1 = new Date(row.tglMulai);
+            const d2 = new Date(row.tglSelesai);
+            
+            if (row.abaikanMinggu) {
+                let count = 0;
+                let cur = new Date(d1);
+                while (cur <= d2) {
+                    if (cur.getDay() !== 0) {
+                        count++;
+                    }
+                    cur.setDate(cur.getDate() + 1);
+                }
+                row.durasi = count > 0 ? count : 1;
+            } else {
+                const diffDays = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+                row.durasi = diffDays > 0 ? diffDays : 1;
+            }
+        } else {
+            row.durasi = 1;
+        }
+
+        const targetNama = (row.nama || "").trim().toUpperCase();
+        const found = cutiMasterData.karyawan.find(k => (k.nama || "").trim().toUpperCase() === targetNama);
+        const isTahunan = (row.jenisCuti || "").trim().toUpperCase() === "TAHUNAN";
+
+        if (found) {
+            if (isTahunan) {
+                row.sisaCuti = Math.max(0, found.hakCuti - row.durasi);
+            } else {
+                row.sisaCuti = found.hakCuti;
+            }
+
+            const startCuti = (found.historiCutiTaken || 0) + 1;
+            if (row.durasi > 1) {
+                let listCuti = [];
+                for(let i = 0; i < row.durasi; i++) {
+                    listCuti.push(startCuti + i);
+                }
+                row.cutiKe = `KE ${listCuti.join(', ')}`;
+            } else {
+                row.cutiKe = `KE ${startCuti}`;
+            }
+        } else {
+            row.sisaCuti = 0;
+            row.cutiKe = "KE 1";
+        }
+    }
+
+    function renderFormRowsUI() {
+        const tbodyDesktop = document.getElementById("tbodyCutiDesktop");
+        const containerMobile = document.getElementById("mobileCardsContainer");
+
+        tbodyDesktop.innerHTML = "";
+        containerMobile.innerHTML = "";
+
+        formDataRows.forEach((row, index) => {
+            let karyawanOpts = cutiMasterData.karyawan.map(k => `<option value="${k.nama}" ${k.nama === row.nama ? 'selected':''}>${k.nama}</option>`).join("");
+            let jenisOpts = cutiMasterData.jenisCuti.map(j => `<option value="${j}" ${j === row.jenisCuti ? 'selected':''}>${j}</option>`).join("");
+
+            tbodyDesktop.innerHTML += `
+            <tr id="desk_${row.id}">
+                <td>
+                    <select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'nama', this.value)">
+                        <option value="">-- Pilih Karyawan --</option>${karyawanOpts}
+                    </select>
+                </td>
+                <td><input type="date" class="form-control form-control-sm" value="${row.tglMulai}" onchange="updateRowData('${row.id}', 'tglMulai', this.value)"></td>
+                <td><input type="date" class="form-control form-control-sm" value="${row.tglSelesai}" onchange="updateRowData('${row.id}', 'tglSelesai', this.value)"></td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control text-center" value="${row.durasi}" readonly>
+                        <div class="input-group-text p-1">
+                            <input class="form-check-input mt-0" type="checkbox" title="Abaikan Hari Minggu" ${row.abaikanMinggu ? 'checked':''} onchange="updateRowData('${row.id}', 'abaikanMinggu', this.checked)">
+                        </div>
+                    </div>
+                </td>
+                <td><input type="text" class="form-control form-control-sm" value="${row.cutiKe}" onchange="updateRowData('${row.id}', 'cutiKe', this.value)"></td>
+                <td><input type="number" class="form-control form-control-sm text-center fw-bold text-primary" value="${row.sisaCuti}" readonly></td>
+                <td><select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'jenisCuti', this.value)">${jenisOpts}</select></td>
+                <td><input type="text" class="form-control form-control-sm" value="${row.alasan}" placeholder="${DEFAULT_ALASAN}" onchange="updateRowData('${row.id}', 'alasan', this.value)"></td>
+                <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger border-0 fw-bold" onclick="removeFormRow('${row.id}')">✕</button></td>
+            </tr>`;
+
+            containerMobile.innerHTML += `
+            <div class="mobile-card-row" id="mob_${row.id}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-primary">Pemohon #${index + 1}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 p-0 fw-bold" onclick="removeFormRow('${row.id}')">✕ Hapus</button>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small mb-1 fw-semibold">Nama Karyawan</label>
+                    <select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'nama', this.value)">
+                        <option value="">-- Pilih Karyawan --</option>${karyawanOpts}
+                    </select>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small mb-1">Tgl Mulai</label>
+                        <input type="date" class="form-control form-control-sm" value="${row.tglMulai}" onchange="updateRowData('${row.id}', 'tglMulai', this.value)">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small mb-1">Tgl Selesai</label>
+                        <input type="date" class="form-control form-control-sm" value="${row.tglSelesai}" onchange="updateRowData('${row.id}', 'tglSelesai', this.value)">
+                    </div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Lama (Hari)</label>
+                        <input type="number" class="form-control form-control-sm text-center" value="${row.durasi}" readonly>
+                        <div class="form-check mt-1" style="font-size:0.7rem;">
+                            <input class="form-check-input" type="checkbox" id="mob_chk_${row.id}" ${row.abaikanMinggu ? 'checked':''} onchange="updateRowData('${row.id}', 'abaikanMinggu', this.checked)">
+                            <label class="form-check-label" for="mob_chk_${row.id}">Skip Minggu</label>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Cuti Ke</label>
+                        <input type="text" class="form-control form-control-sm" value="${row.cutiKe}" onchange="updateRowData('${row.id}', 'cutiKe', this.value)">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Sisa Cuti</label>
+                        <input type="number" class="form-control form-control-sm text-center fw-bold text-primary" value="${row.sisaCuti}" readonly>
+                    </div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-5">
+                        <label class="form-label small mb-1">Jenis Cuti</label>
+                        <select class="form-select form-select-sm" onchange="updateRowData('${row.id}', 'jenisCuti', this.value)">${jenisOpts}</select>
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label small mb-1">Alasan Pengajuan</label>
+                        <input type="text" class="form-control form-control-sm" value="${row.alasan}" placeholder="${DEFAULT_ALASAN}" onchange="updateRowData('${row.id}', 'alasan', this.value)">
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    function updateRowData(rowId, field, value) {
+        const row = formDataRows.find(r => r.id === rowId);
+        if (!row) return;
+
+        row[field] = value;
+        updateRowLogic(row);
+        renderFormRowsUI();
+    }
+
+    function formatTanggalIndo(dateStr) {
+        if(!dateStr) return "";
+        const d = new Date(dateStr);
+        const bulanArr = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+        return `${d.getDate()} ${bulanArr[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function formatTglTabel(tMulai, tSelesai, abaikanMinggu = true) {
+        if (!tMulai) return "";
+        const d1 = new Date(tMulai);
+        if (!tSelesai || tMulai === tSelesai) return `${d1.getDate()}`;
+        
+        const d2 = new Date(tSelesai);
+        const listTgl = [];
+        let current = new Date(d1);
+        while (current <= d2) {
+            if (!abaikanMinggu || current.getDay() !== 0) {
+                listTgl.push(current.getDate());
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        return listTgl.join(", ");
+    }
+
+    async function pratinjauPDF() {
+        if(formDataRows.length === 0) {
+            alert("Harap tambahkan minimal 1 pemohon cuti.");
+            return;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        modal.show();
+
+        const pdfDoc = await buildPDFDocument();
+        const arrayBuffer = pdfDoc.output('arraybuffer');
+
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+
+        const canvas = document.getElementById('pdfPreviewCanvas');
+        const context = canvas.getContext('2d');
+
+        const viewport = page.getViewport({ scale: 1.5 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+    }
+
+    function downloadFromPreview() {
+        const modalEl = document.getElementById('previewModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+        prosesDanCetakPDF();
+    }
+
+    async function prosesDanCetakPDF() {
+        if(formDataRows.length === 0) {
+            alert("Harap tambahkan minimal 1 pemohon cuti.");
+            return;
+        }
+
+        const pdfDoc = await buildPDFDocument();
+        let pemohonList = [];
+
+        formDataRows.forEach(row => {
+            if(row.nama) {
+                const targetNama = row.nama.trim().toUpperCase();
+                const isTahunan = (row.jenisCuti || "").trim().toUpperCase() === "TAHUNAN";
+                pemohonList.push(row.nama);
+                
+                const k = cutiMasterData.karyawan.find(item => (item.nama || "").trim().toUpperCase() === targetNama);
+                if(k) {
+                    if (isTahunan) {
+                        k.hakCuti = Math.max(0, k.hakCuti - row.durasi);
+                    }
+                    k.historiCutiTaken = (k.historiCutiTaken || 0) + row.durasi;
+                }
+            }
+        });
+
+        const noSurat = document.getElementById("suratNomor").value;
+        const ruangan = document.getElementById("suratRuangan").value.toUpperCase();
+        const bulanTahun = document.getElementById("suratBulan").value.toUpperCase();
+        
+        cutiMasterData.historySurat.unshift({
+            noSurat: noSurat,
+            tglCetak: new Date().toLocaleString("id-ID"),
+            ruangan: ruangan,
+            bulanTahun: bulanTahun,
+            daftarNama: pemohonList
+        });
+
+        cutiMasterData.counterSurat += 1;
+
+        saveCutiMasterData();
+        renderMasterUI();
+        renderHistoryUI();
+
+        pdfDoc.save(`Permohonan_Cuti_${ruangan}_${bulanTahun}.pdf`);
+
+        formDataRows = [];
+        addFormRow();
+        generateNoSuratOtomatis();
+
+        alert("Pengajuan cuti disahkan & PDF diunduh!");
+    }
+
+    function cetakUlangHistory(idx) {
+        buildPDFDocument().then(pdfDoc => {
+            const h = cutiMasterData.historySurat[idx];
+            pdfDoc.save(`Permohonan_Cuti_${h.ruangan}_${h.bulanTahun}.pdf`);
+        });
+    }
+
+    async function buildPDFDocument() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const FONT = "times"; 
+        const BASE_FONT_SIZE = 12;
+        let startY = 15;
+
+        if (cutiMasterData.renderedKopImageBase64) {
+            doc.addImage(cutiMasterData.renderedKopImageBase64, 'PNG', 15, 8, 180, 32);
+            startY = 48;
+        }
+
+        const tglSurat = formatTanggalIndo(document.getElementById("suratTanggal").value);
+        const noSurat = document.getElementById("suratNomor").value;
+        const ruangan = document.getElementById("suratRuangan").value.toUpperCase();
+        const bulanTahun = document.getElementById("suratBulan").value.toUpperCase();
+
+        doc.setFont(FONT, "normal");
+        doc.setFontSize(BASE_FONT_SIZE);
+        
+        const ythX = 125; 
+        doc.text(`Brebes, ${tglSurat}`, ythX, startY);
+        doc.text(`Nomor\t:  ${noSurat}`, 15, startY + 6);
+        doc.text(`Perihal\t:  Permohonan Persetujuan Cuti`, 15, startY + 12);
+
+        let ythStartY = startY + 12; 
+        doc.text(`Kepada Yth :`, ythX, ythStartY);
+        ythStartY += 6;
+        doc.text(cutiMasterData.ttd.jabatanMenyetujui, ythX, ythStartY);
+        ythStartY += 6;
+        doc.text(`Di –`, ythX, ythStartY);
+        ythStartY += 6;
+        doc.text(`Brebes`, ythX, ythStartY);
+
+        startY = ythStartY + 12;
+        doc.setFontSize(BASE_FONT_SIZE);
+        const textPembuka = `Bersama ini kami sampaikan daftar karyawan/i Ruang ${ruangan} yang mengajukan cuti pada bulan ${bulanTahun} untuk kami mintakan persetujuan pengambilan cuti dengan data sebagai berikut :`;
+        
+        doc.text("        " + textPembuka, 15, startY, { maxWidth: 180 });
+        const splitPembuka = doc.splitTextToSize("        " + textPembuka, 180);
+        startY += (splitPembuka.length * 5) + 3;
+
+        const tableBody = [];
+        formDataRows.forEach((row, index) => {
+            if(row.nama) {
+                const alasanCetak = (row.alasan && row.alasan.trim() !== "") ? row.alasan.trim().toUpperCase() : DEFAULT_ALASAN;
+                tableBody.push([
+                    `${index + 1}.`,
+                    row.nama,
+                    formatTglTabel(row.tglMulai, row.tglSelesai, row.abaikanMinggu),
+                    row.cutiKe,
+                    row.sisaCuti,
+                    row.jenisCuti,
+                    alasanCetak
+                ]);
+            }
+        });
+
+        doc.autoTable({
+            startY: startY,
+            head: [['No', 'Nama', 'Tanggal Pengajuan Cuti', 'Cuti Ke …..', 'Sisa Cuti', 'Jenis cuti yang diajukan', 'Alasan Pengajuan Cuti']],
+            body: tableBody,
+            theme: 'grid',
+            styles: { font: FONT, fontSize: 9.5, textColor: [0, 0, 0], lineWidth: 0.2, lineColor: [0, 0, 0], cellPadding: 1.5 },
+            headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', valign: 'middle' },
+            bodyStyles: { fontStyle: 'normal', valign: 'middle' },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 8 },
+                1: { cellWidth: 35 },
+                2: { halign: 'center', cellWidth: 22 },
+                3: { halign: 'center', cellWidth: 20 },
+                4: { halign: 'center', cellWidth: 15 },
+                5: { halign: 'center', cellWidth: 25 },
+                6: { cellWidth: 55 }
+            },
+            margin: { left: 15, right: 15 }
+        });
+
+        let finalY = doc.lastAutoTable.finalY + 6;
+        doc.setFont(FONT, "normal");
+        doc.setFontSize(BASE_FONT_SIZE);
+        const textPenutup = "Demikian data permohonan persetujuan cuti ini  ini kami sampaikan, atas perhatiann dan persetujuan yang diberikan kami sampaikan terima kasih.";
+        
+        doc.text("        " + textPenutup, 15, finalY, { maxWidth: 180 });
+        const splitPenutup = doc.splitTextToSize("        " + textPenutup, 180);
+        finalY += (splitPenutup.length * 5) + 4;
+
+        const ttdTableStartY = finalY;
+        doc.setFontSize(BASE_FONT_SIZE);
+        doc.setFont(FONT, "normal");
+        doc.text("Diketahui  oleh HRD dan atasan langsungnya", 15, ttdTableStartY);
+        
+        const pengajuX = 152; 
+        doc.text("Yang Mengajukan,", pengajuX, ttdTableStartY, { align: "center" });
+
+        doc.autoTable({
+            startY: ttdTableStartY + 2,
+            head: [['Tanggal dan\nTtd HRD', 'Tanggal dan Ttd\natasan langsungnya']],
+            body: [['', '']],
+            theme: 'grid',
+            styles: { font: FONT, fontSize: 9, textColor: [0, 0, 0], lineWidth: 0.2, lineColor: [0, 0, 0], minCellHeight: 12 },
+            headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'normal', halign: 'center', valign: 'middle' },
+            columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 35 } },
+            margin: { left: 15 }
+        });
+
+        let pengajuNamaY = ttdTableStartY + 26;
+        doc.setFont(FONT, "normal");
+        doc.setFontSize(BASE_FONT_SIZE);
+        doc.text(cutiMasterData.ttd.hrdNama, pengajuX, pengajuNamaY, { align: "center" });
+        doc.text("NRP.", pengajuX - 12, pengajuNamaY + 5);
+
+        let direkturY = doc.lastAutoTable.finalY + 12;
+        const pageCenterX = 105;
+
+        doc.setFont(FONT, "normal");
+        doc.setFontSize(BASE_FONT_SIZE);
+        doc.text("Yang Menyetujui", pageCenterX, direkturY, { align: "center" });
+        direkturY += 5;
+        doc.text(cutiMasterData.ttd.jabatanMenyetujui, pageCenterX, direkturY, { align: "center" });
+        direkturY += 20;
+        doc.setFont(FONT, "bold"); 
+        doc.text(cutiMasterData.ttd.namaMenyetujui, pageCenterX, direkturY, { align: "center" });
+        direkturY += 5;
+        doc.setFont(FONT, "normal"); 
+        doc.text(`NRP. ${cutiMasterData.ttd.nrpMenyetujui}`, pageCenterX, direkturY, { align: "center" });
+
+        let footerY = direkturY + 8;
+        doc.setFont(FONT, "normal");
+        doc.setFontSize(BASE_FONT_SIZE);
+        doc.text("Catatan :", 15, footerY);
+        footerY += 5;
+        doc.text("-  Pengajuan persetujuan cuti diajukan melalui HRD maksimal pada tanggal 20 disetiap bulannya", 15, footerY, { maxWidth: 180 });
+        footerY += 5;
+        doc.text("-  Jenis cuti yang diajukan diisi dengan Cuti Tahunan/Cuti Melahirkan/Cuti Haji/Cuti Umroh/Cuti Hajatan.", 15, footerY, { maxWidth: 180 });
+
+        return doc;
+    }
+
+    /* =====================================================================
+       LOGIKA MODUL 2: MANAJEMEN JADWAL SHIFT
+       ===================================================================== */
+    const JADWAL_STORAGE_KEY = "app_jadwal_rsba_v10";
+
+    const LOCAL_HOLIDAY_DATABASE = {
+        "2026-1": [{ tgl: 1, ket: "Tahun Baru 2026 Masehi" }, { tgl: 16, ket: "Isra Mikraj Nabi Muhammad SAW" }],
+        "2026-2": [{ tgl: 17, ket: "Tahun Baru Imlek 2577 Kongzili" }],
+        "2026-3": [{ tgl: 19, ket: "Hari Suci Nyepi Saka 1948" }, { tgl: 20, ket: "Hari Raya Idul Fitri 1447 H" }, { tgl: 21, ket: "Hari Raya Idul Fitri 1447 H" }],
+        "2026-4": [{ tgl: 3, ket: "Wafat Yesus Kristus" }],
+        "2026-5": [{ tgl: 1, ket: "Hari Buruh Internasional" }, { tgl: 14, ket: "Kenaikan Yesus Kristus" }, { tgl: 27, ket: "Hari Raya Idul Adha 1447 H" }, { tgl: 31, ket: "Hari Raya Waisak 2570 BE" }],
+        "2026-6": [{ tgl: 1, ket: "Hari Lahir Pancasila" }, { tgl: 16, ket: "Tahun Baru Islam 1448 H" }],
+        "2026-7": [], "2026-8": [{ tgl: 17, ket: "Hari Kemerdekaan RI" }, { tgl: 25, ket: "Maulid Nabi Muhammad SAW" }],
+        "2026-9": [], "2026-10": [], "2026-11": [],
+        "2026-12": [{ tgl: 25, ket: "Hari Raya Natal" }]
+    };
+
+    const defaultJadwalData = {
+        bulan: 11,
+        tahun: 2026,
+        judul: "JADWAL KASIR NOVEMBER 2026",
+        karyawan: [
+            { id: 1, nama: "DUL MUID", unit: "Kasir RI" },
+            { id: 2, nama: "YULI MAULIDA", unit: "Kasir RI" },
+            { id: 3, nama: "FAUZUL", unit: "Kasir RI" },
+            { id: 4, nama: "WINDARTI", unit: "Kasir Poli" },
+            { id: 5, nama: "DWI KRISNA", unit: "Kasir Poli" },
+            { id: 6, nama: "MB NETI", unit: "KEU" }
+        ],
+        shifts: {},
+        onCall: {},
+        holidays: [],
+        notes: "Note :\nTgl 26 Agust s.d 10 Sept, jadwal kasir 1 dikondisikan untuk rekapitulasi visit Dokter.\nFAUZUL : TAMBAHAN LIBUR 1X, KOMPENSASI IKUT KEGIATAN CSR+SAMBUT BUPATI TGL 30 JUNI 2026"
+    };
+
+    let appState = JSON.parse(JSON.stringify(defaultJadwalData));
+
+    function loadJadwalDataFromStorage() {
+        const saved = localStorage.getItem(JADWAL_STORAGE_KEY);
+        if (saved) {
+            try {
+                appState = JSON.parse(saved);
+            } catch(e) {
+                appState = JSON.parse(JSON.stringify(defaultJadwalData));
+            }
+        }
+        document.getElementById("selectBulan").value = appState.bulan || 11;
+        document.getElementById("selectTahun").value = appState.tahun || 2026;
+        document.getElementById("inputJudulJadwal").value = appState.judul || "JADWAL KASIR NOVEMBER 2026";
+        document.getElementById("inputCatatanKhusus").value = appState.notes || "";
+    }
+
+    function saveScheduleData() {
+        appState.bulan = parseInt(document.getElementById("selectBulan").value);
+        appState.tahun = parseInt(document.getElementById("selectTahun").value);
+        appState.judul = document.getElementById("inputJudulJadwal").value;
+        appState.notes = document.getElementById("inputCatatanKhusus").value;
+
+        localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(appState));
+        document.getElementById("printJudulJadwal").innerText = appState.judul;
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function onPeriodChange() {
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const monthNames = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+        
+        document.getElementById("inputJudulJadwal").value = `JADWAL KASIR ${monthNames[bulan - 1]} ${tahun}`;
+        saveScheduleData();
+        renderAllJadwalUI();
+        fetchNationalHolidaysAuto(false);
+    }
+
+    async function fetchNationalHolidaysAuto(showAlert = false) {
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const badge = document.getElementById("holidayLoadingBadge");
+        if(badge) badge.classList.remove("d-none");
+
+        let fetchedHolidays = [];
+        let isSuccess = false;
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const res = await fetch(`https://dayoffapi.vercel.app/api?year=${tahun}&month=${bulan}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        if (item.is_holiday) {
+                            const dateParts = item.holiday_date.split("-");
+                            const day = parseInt(dateParts[2]);
+                            fetchedHolidays.push({ tgl: day, ket: item.holiday_name });
+                        }
+                    });
+                    isSuccess = true;
+                }
+            }
+        } catch (e) {
+            console.warn("Fallback Database Lokal.", e);
+        }
+
+        if (!isSuccess) {
+            const key = `${tahun}-${bulan}`;
+            if (LOCAL_HOLIDAY_DATABASE[key]) {
+                fetchedHolidays = [...LOCAL_HOLIDAY_DATABASE[key]];
+            }
+        }
+
+        appState.holidays = fetchedHolidays;
+        saveScheduleData();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+
+        if(badge) badge.classList.add("d-none");
+        if (showAlert) {
+            alert(`Sistem memuat ${fetchedHolidays.length} hari libur nasional.`);
+        }
+    }
+
+    function renderAllJadwalUI() {
+        renderScheduleMatrix();
+        renderMasterKaryawanUI();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function renderScheduleMatrix() {
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const totalDays = new Date(tahun, bulan, 0).getDate();
+        const dayNamesIndo = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+        let daysHeaderHtml = `<th style="width: 25px;">No.</th><th style="width: 70px;">Unit</th><th style="width: 110px;">Nama</th>`;
+        let datesHeaderHtml = `<th colspan="3" class="bg-body-secondary">Hari / Tanggal</th>`;
+        let weekendCols = [];
+
+        for (let d = 1; d <= totalDays; d++) {
+            const dateObj = new Date(tahun, bulan - 1, d);
+            const dayOfWeek = dateObj.getDay();
+            const dayName = dayNamesIndo[dayOfWeek];
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+            if (isWeekend) weekendCols.push(d);
+
+            const weekendClass = isWeekend ? 'weekend-header' : '';
+            daysHeaderHtml += `<th class="${weekendClass}">${dayName}</th>`;
+            datesHeaderHtml += `<th class="${weekendClass}">${d}</th>`;
+        }
+
+        daysHeaderHtml += `<th style="width: 35px;" class="bg-body-secondary">TOTAL</th><th style="width: 35px;" class="bg-body-secondary">ON</th><th style="width: 25px;">P</th><th style="width: 25px;">S</th><th style="width: 25px;">T</th>`;
+        datesHeaderHtml += `<th class="bg-body-secondary">LIBUR</th><th class="bg-body-secondary">CALL</th><th>Pagi</th><th>Siang</th><th>Tengah</th>`;
+
+        document.getElementById("headerDaysRow").innerHTML = daysHeaderHtml;
+        document.getElementById("headerDatesRow").innerHTML = datesHeaderHtml;
+
+        let tbodyHtml = "";
+
+        appState.karyawan.forEach((k, idx) => {
+            const kId = k.id.toString();
+            if (!appState.shifts[kId]) appState.shifts[kId] = {};
+            if (!appState.onCall[kId]) appState.onCall[kId] = {};
+
+            let countL = 0, countP = 0, countS = 0, countT = 0, countOC = 0;
+
+            for (let d = 1; d <= totalDays; d++) {
+                const shiftVal = appState.shifts[kId][d] || "";
+                const isOC = !!appState.onCall[kId][d];
+
+                if (shiftVal === "L") countL++;
+                else if (shiftVal === "P") countP++;
+                else if (shiftVal === "S") countS++;
+                else if (shiftVal === "T") countT++;
+                if (isOC) countOC++;
+            }
+
+            let mainRowHtml = `<tr>
+                <td class="fw-bold">${idx + 1}</td>
+                <td class="fw-semibold text-start px-1">${k.unit}</td>
+                <td class="fw-bold text-start px-1">${k.nama}</td>`;
+
+            let ocRowHtml = `<tr class="sub-row-oc">
+                <td colspan="3" class="text-end pe-2 text-muted fst-italic" style="font-size:0.65rem;">On Call (OC)</td>`;
+
+            for (let d = 1; d <= totalDays; d++) {
+                const shiftVal = appState.shifts[kId][d] || "";
+                const isOC = !!appState.onCall[kId][d];
+                const isWeekend = weekendCols.includes(d);
+                const weekendBg = isWeekend ? 'weekend-cell' : '';
+                const shiftClass = shiftVal ? `shift-${shiftVal.replace('.', '')}` : '';
+
+                mainRowHtml += `<td class="${weekendBg}">
+                    <select class="shift-select ${shiftClass}" onchange="updateShift('${kId}', ${d}, this.value)">
+                        <option value="" ${shiftVal===''?'selected':''}>-</option>
+                        <option value="P" ${shiftVal==='P'?'selected':''}>P</option>
+                        <option value="S" ${shiftVal==='S'?'selected':''}>S</option>
+                        <option value="T" ${shiftVal==='T'?'selected':''}>T</option>
+                        <option value="L" ${shiftVal==='L'?'selected':''}>L</option>
+                        <option value="C" ${shiftVal==='C'?'selected':''}>C</option>
+                        <option value="Spoli" ${shiftVal==='Spoli'?'selected':''}>Spoli</option>
+                    </select>
+                </td>`;
+
+                ocRowHtml += `<td class="${weekendBg}">
+                    <input type="checkbox" class="form-check-input" ${isOC?'checked':''} onchange="toggleOnCall('${kId}', ${d}, this.checked)">
+                </td>`;
+            }
+
+            mainRowHtml += `<td class="fw-bold text-danger bg-body-secondary">${countL}</td>
+                <td class="fw-bold text-body bg-body-secondary">${countOC}</td>
+                <td class="fw-bold text-primary">${countP}</td>
+                <td class="fw-bold text-warning">${countS}</td>
+                <td class="fw-bold text-secondary">${countT}</td>
+            </tr>`;
+
+            ocRowHtml += `<td colspan="5" class="bg-body-secondary"></td></tr>`;
+            tbodyHtml += mainRowHtml + ocRowHtml;
+        });
+
+        document.getElementById("scheduleTbody").innerHTML = tbodyHtml;
+    }
+
+    function updateShift(kId, day, value) {
+        if (!appState.shifts[kId]) appState.shifts[kId] = {};
+        appState.shifts[kId][day] = value;
+        saveScheduleData();
+        renderScheduleMatrix();
+    }
+
+    function toggleOnCall(kId, day, checked) {
+        if (!appState.onCall[kId]) appState.onCall[kId] = {};
+        appState.onCall[kId][day] = checked;
+        saveScheduleData();
+        renderScheduleMatrix();
+    }
+
+    function generateAutoSchedule() {
+        if (!confirm("Regenerasi jadwal otomatis? Hari libur nasional akan diterapkan.")) return;
+
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const totalDays = new Date(tahun, bulan, 0).getDate();
+
+        const karyawanList = appState.karyawan;
+        if (!karyawanList || karyawanList.length === 0) {
+            alert("Belum ada data karyawan!");
+            return;
+        }
+
+        appState.shifts = {};
+        appState.onCall = {};
+        karyawanList.forEach(k => {
+            const kId = k.id.toString();
+            appState.shifts[kId] = {};
+            appState.onCall[kId] = {};
+        });
+
+        const holidayDates = (appState.holidays || []).map(h => h.tgl);
+        const kasirRIList = karyawanList.filter(k => k.unit === "Kasir RI");
+        const kasirPoliList = karyawanList.filter(k => k.unit === "Kasir Poli");
+        const unitLainList = karyawanList.filter(k => k.unit !== "Kasir RI" && k.unit !== "Kasir Poli");
+
+        unitLainList.forEach(k => {
+            const kId = k.id.toString();
+            for (let d = 1; d <= totalDays; d++) {
+                const dayOfWeek = new Date(tahun, bulan - 1, d).getDay();
+                if (dayOfWeek === 0 || holidayDates.includes(d)) {
+                    appState.shifts[kId][d] = "L";
+                } else {
+                    appState.shifts[kId][d] = "P";
+                }
+            }
+        });
+
+        if (kasirPoliList.length > 0) {
+            const ppssPattern = ["P", "P", "S", "S"];
+            kasirPoliList.forEach((k, idx) => {
+                const kId = k.id.toString();
+                let patternPointer = (idx * 2) % ppssPattern.length;
+                for (let d = 1; d <= totalDays; d++) {
+                    const dayOfWeek = new Date(tahun, bulan - 1, d).getDay();
+                    if (dayOfWeek === 0 || holidayDates.includes(d)) {
+                        appState.shifts[kId][d] = "L";
+                    } else {
+                        appState.shifts[kId][d] = ppssPattern[patternPointer % ppssPattern.length];
+                        patternPointer++;
+                    }
+                }
+            });
+        }
+
+        if (kasirRIList.length > 0) {
+            for (let d = 1; d <= totalDays; d++) {
+                kasirRIList.forEach((k, idx) => {
+                    const kId = k.id.toString();
+                    if ((d + idx) % 5 === 0) appState.shifts[kId][d] = "L";
+                    else if ((d + idx) % 3 === 0) appState.shifts[kId][d] = "S";
+                    else if ((d + idx) % 4 === 0) appState.shifts[kId][d] = "T";
+                    else appState.shifts[kId][d] = "P";
+                });
+            }
+        }
+
+        saveScheduleData();
+        renderScheduleMatrix();
+        alert("Generasi Jadwal Berhasil!");
+    }
+
+    function openPreviewModal() {
+        saveScheduleData();
+        const previewContainer = document.getElementById("pdfPreviewContent");
+        previewContainer.innerHTML = "";
+
+        const headerClone = document.getElementById("printAreaHeader").cloneNode(true);
+        const matrixClone = document.getElementById("printAreaMatrix").cloneNode(true);
+        const footerClone = document.getElementById("printAreaFooter").cloneNode(true);
+
+        const loadingBadge = footerClone.querySelector("#holidayLoadingBadge");
+        if (loadingBadge) loadingBadge.remove();
+
+        const selects = matrixClone.querySelectorAll("select.shift-select");
+        selects.forEach(sel => {
+            const val = sel.value;
+            const parentTd = sel.parentElement;
+            if (val) {
+                const shiftClass = `shift-${val.replace('.', '')}`;
+                parentTd.innerHTML = `<span class="badge ${shiftClass} px-2 py-1">${val}</span>`;
+            } else {
+                parentTd.innerHTML = `<span class="text-muted">-</span>`;
+            }
+        });
+
+        const checkboxes = matrixClone.querySelectorAll("input[type='checkbox']");
+        checkboxes.forEach(cb => {
+            const parentTd = cb.parentElement;
+            parentTd.innerHTML = cb.checked ? '<span class="badge badge-OC">OC</span>' : '<span class="text-muted">-</span>';
+        });
+
+        previewContainer.appendChild(headerClone);
+        previewContainer.appendChild(matrixClone);
+        previewContainer.appendChild(footerClone);
+
+        const modal = new bootstrap.Modal(document.getElementById('previewPdfModal'));
+        modal.show();
+    }
+
+    function downloadJadwalFromPreview() {
+        const modalEl = document.getElementById('previewPdfModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        setTimeout(() => { executeJadwalPdfDownload(); }, 300);
+    }
+
+    function downloadDirectPDF() {
+        executeJadwalPdfDownload();
+    }
+
+    function executeJadwalPdfDownload() {
+        saveScheduleData();
+        
+        const element = document.createElement("div");
+        element.className = "pdf-export-container";
+
+        const headerClone = document.getElementById("printAreaHeader").cloneNode(true);
+        const matrixClone = document.getElementById("printAreaMatrix").cloneNode(true);
+        const footerClone = document.getElementById("printAreaFooter").cloneNode(true);
+
+        const loadingBadge = footerClone.querySelector("#holidayLoadingBadge");
+        if (loadingBadge) loadingBadge.remove();
+
+        const selects = matrixClone.querySelectorAll("select.shift-select");
+        selects.forEach(sel => {
+            const val = sel.value;
+            const parentTd = sel.parentElement;
+            if (val) {
+                const shiftClass = `shift-${val.replace('.', '')}`;
+                parentTd.innerHTML = `<span class="badge ${shiftClass}">${val}</span>`;
+            } else {
+                parentTd.innerHTML = `<span style="color:#666;">-</span>`;
+            }
+        });
+
+        const checkboxes = matrixClone.querySelectorAll("input[type='checkbox']");
+        checkboxes.forEach(cb => {
+            const parentTd = cb.parentElement;
+            parentTd.innerHTML = cb.checked ? '<span class="badge badge-OC">OC</span>' : '<span style="color:#666;">-</span>';
+        });
+
+        element.appendChild(headerClone);
+        element.appendChild(matrixClone);
+        element.appendChild(footerClone);
+
+        const filename = (appState.judul || 'JADWAL_KASIR').replace(/[/\\?%*:|"<>]/g, '_') + '.pdf';
+        const opt = {
+            margin:       [0.15, 0.15, 0.15, 0.15],
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 1.0 },
+            html2canvas:  { scale: 3, useCORS: true, logging: false },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }
+
+    function exportToExcelXLSX() {
+        saveScheduleData();
+        const bulan = parseInt(document.getElementById("selectBulan").value);
+        const tahun = parseInt(document.getElementById("selectTahun").value);
+        const totalDays = new Date(tahun, bulan, 0).getDate();
+        const dayNamesIndo = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+        let excelData = [
+            [appState.judul || "JADWAL KASIR"],
+            ["RS. BHAKTI ASIH BREBES"],
+            []
+        ];
+
+        let rowDays = ["No", "Unit", "Nama"];
+        for (let d = 1; d <= totalDays; d++) {
+            const dayOfWeek = new Date(tahun, bulan - 1, d).getDay();
+            rowDays.push(dayNamesIndo[dayOfWeek]);
+        }
+        rowDays.push("TOTAL LIBUR", "ON CALL", "Pagi", "Siang", "Tengah");
+        excelData.push(rowDays);
+
+        let rowDates = ["", "", "Hari / Tanggal"];
+        for (let d = 1; d <= totalDays; d++) rowDates.push(d);
+        rowDates.push("", "", "", "", "");
+        excelData.push(rowDates);
+
+        appState.karyawan.forEach((k, idx) => {
+            const kId = k.id.toString();
+            let countL = 0, countP = 0, countS = 0, countT = 0, countOC = 0;
+
+            for (let d = 1; d <= totalDays; d++) {
+                const shiftVal = appState.shifts[kId] ? (appState.shifts[kId][d] || "") : "";
+                const isOC = appState.onCall[kId] ? !!appState.onCall[kId][d] : false;
+
+                if (shiftVal === "L") countL++;
+                else if (shiftVal === "P") countP++;
+                else if (shiftVal === "S") countS++;
+                else if (shiftVal === "T") countT++;
+                if (isOC) countOC++;
+            }
+
+            let rowShift = [idx + 1, k.unit, k.nama];
+            for (let d = 1; d <= totalDays; d++) {
+                rowShift.push(appState.shifts[kId] ? (appState.shifts[kId][d] || "-") : "-");
+            }
+            rowShift.push(countL, countOC, countP, countS, countT);
+            excelData.push(rowShift);
+
+            let rowOC = ["", "", "On Call (OC)"];
+            for (let d = 1; d <= totalDays; d++) {
+                rowOC.push((appState.onCall[kId] && appState.onCall[kId][d]) ? "OC" : "");
+            }
+            rowOC.push("", "", "", "", "");
+            excelData.push(rowOC);
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Jadwal Shift");
+
+        const filename = (appState.judul || 'Jadwal_Shift_RSBA').replace(/[/\\?%*:|"<>]/g, '_') + '.xlsx';
+        XLSX.writeFile(workbook, filename);
+    }
+
+    function renderMasterKaryawanUI() {
+        const tbody = document.getElementById("masterKaryawanTbody");
+        tbody.innerHTML = "";
+        appState.karyawan.forEach((k, idx) => {
+            tbody.innerHTML += `<tr>
+                <td>${idx + 1}</td>
+                <td class="fw-bold">${k.nama}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary border">${k.unit}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger p-0 px-2" onclick="hapusKaryawanMaster(${k.id})">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    function tambahKaryawanMaster() {
+        const nama = document.getElementById("masterNama").value.trim().toUpperCase();
+        const unit = document.getElementById("masterUnit").value;
+        if (!nama) return alert("Harap masukkan nama karyawan.");
+
+        const newId = Date.now();
+        appState.karyawan.push({ id: newId, nama: nama, unit: unit });
+        document.getElementById("masterNama").value = "";
+
+        saveScheduleData();
+        renderMasterKaryawanUI();
+        renderScheduleMatrix();
+    }
+
+    function hapusKaryawanMaster(id) {
+        if (confirm("Hapus karyawan ini dari jadwal?")) {
+            appState.karyawan = appState.karyawan.filter(k => k.id !== id);
+            delete appState.shifts[id.toString()];
+            delete appState.onCall[id.toString()];
+
+            saveScheduleData();
+            renderMasterKaryawanUI();
+            renderScheduleMatrix();
+        }
+    }
+
+    function renderNotesAndHolidaysMaster() {
+        const tbody = document.getElementById("tbodyHariLiburMaster");
+        tbody.innerHTML = "";
+        (appState.holidays || []).forEach((h, idx) => {
+            tbody.innerHTML += `<tr>
+                <td class="fw-bold text-center">${h.tgl}</td>
+                <td>${h.ket}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-link text-danger p-0 fw-bold" onclick="hapusHariLibur(${idx})">✕</button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    function renderNotesAndHolidaysDisplay() {
+        const hList = document.getElementById("displayHolidaysList");
+        hList.innerHTML = "";
+        if (!appState.holidays || appState.holidays.length === 0) {
+            hList.innerHTML = `<li class="list-group-item text-muted">Tidak ada hari libur nasional.</li>`;
+        } else {
+            appState.holidays.forEach(h => {
+                hList.innerHTML += `<li class="list-group-item py-1 px-0 border-0">
+                    <strong class="text-danger me-2">Tgl ${h.tgl}:</strong> ${h.ket}
+                </li>`;
+            });
+        }
+        document.getElementById("displayNotesContent").innerHTML = (appState.notes || "-").replace(/\n/g, '<br>');
+    }
+
+    function tambahHariLibur() {
+        const tgl = parseInt(document.getElementById("inputTglLibur").value);
+        const ket = document.getElementById("inputKetLibur").value.trim();
+        if (!tgl || !ket) return alert("Isi tanggal & keterangan libur.");
+
+        if (!appState.holidays) appState.holidays = [];
+        appState.holidays.push({ tgl: tgl, ket: ket });
+
+        document.getElementById("inputTglLibur").value = "";
+        document.getElementById("inputKetLibur").value = "";
+
+        saveScheduleData();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function hapusHariLibur(idx) {
+        appState.holidays.splice(idx, 1);
+        saveScheduleData();
+        renderNotesAndHolidaysMaster();
+        renderNotesAndHolidaysDisplay();
+    }
+
+    function simpanCatatanKhusus() {
+        saveScheduleData();
+        alert("Catatan khusus disimpan!");
+    }
+
+    // INISIALISASI SAAT DOM SIAP
+    document.addEventListener("DOMContentLoaded", function() {
+        initTheme();
+
+        loadCutiMasterData();
+        document.getElementById("suratTanggal").value = new Date().toISOString().substring(0, 10);
+        generateNoSuratOtomatis();
+        renderMasterUI();
+        renderHistoryUI();
+        updateKopStatusUI();
+        addFormRow();
+
+        loadJadwalDataFromStorage();
+        renderAllJadwalUI();
+        fetchNationalHolidaysAuto(false);
+    });
+</script>
+</body>
+</html>
