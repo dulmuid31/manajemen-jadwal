@@ -1,0 +1,22 @@
+{
+  "short_name": "RSBA Cuti&Jadwal",
+  "name": "Manajemen Cuti dan Jadwal RSBA",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1232/1232936.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1232/1232936.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#ffffff",
+  "theme_color": "#198754",
+  "display": "standalone",
+  "orientation": "portrait"
+}
+
