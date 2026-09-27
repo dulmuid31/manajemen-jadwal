@@ -1,19 +1,22 @@
 {
-  "short_name": "RSBA Cuti&Jadwal",
+  "short_name": "RSBA Cuti",
   "name": "Manajemen Cuti dan Jadwal RSBA",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "./index.html",
+  "scope": "./",
   "background_color": "#ffffff",
   "theme_color": "#198754",
   "display": "standalone",
