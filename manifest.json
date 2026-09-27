@@ -3,12 +3,12 @@
   "name": "Manajemen Cuti dan Jadwal RSBA",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1232/1232936.png",
+      "src": "icons/icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1232/1232936.png",
+      "src": "icons/icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
@@ -19,4 +19,3 @@
   "display": "standalone",
   "orientation": "portrait"
 }
-
