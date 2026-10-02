@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rsba-cuti-jadwal-v2';
+const CACHE_NAME = 'rsba-cuti-jadwal-v3';
 
 // Hanya cache file lokal penting saat instalasi
 const LOCAL_ASSETS = [
